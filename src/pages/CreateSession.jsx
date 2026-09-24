@@ -5,6 +5,7 @@ import { MODIFIERS } from '../data/modes'
 import { useAuth } from '../context/AuthContext'
 import { createSession } from '../lib/session'
 import { subscribePacks, subscribeExpansions } from '../lib/decks'
+import { resolvePackIcon } from '../lib/packIcon'
 import CardIcon from '../components/CardIcon'
 
 function toggleId(list, id) {
@@ -66,17 +67,22 @@ export default function CreateSession() {
       <section className="card">
         <h2><CardIcon icon={Backpack} tone="coral" /> Pick a pack</h2>
         <div className="pack-grid">
-          {packs.map((pack) => (
-            <button
-              key={pack.id}
-              className={`pack-tile ${packId === pack.id ? 'selected' : ''}`}
-              onClick={() => setPackId(pack.id)}
-            >
-              <div className="pack-emoji">{pack.emoji}</div>
-              <div className="pack-name">{pack.name}</div>
-              <div className="pack-desc">{pack.description}</div>
-            </button>
-          ))}
+          {packs.map((pack) => {
+            const Icon = resolvePackIcon(pack)
+            return (
+              <button
+                key={pack.id}
+                className={`pack-tile ${packId === pack.id ? 'selected' : ''}`}
+                onClick={() => setPackId(pack.id)}
+              >
+                <div className="pack-emoji">
+                  <Icon size={20} strokeWidth={2.25} />
+                </div>
+                <div className="pack-name">{pack.name}</div>
+                <div className="pack-desc">{pack.description}</div>
+              </button>
+            )
+          })}
         </div>
         {packId && (
           <Link to={`/print/pack/${packId}`} className="hint print-link">
@@ -90,7 +96,9 @@ export default function CreateSession() {
           <h2><CardIcon icon={PlusCircle} tone="mustard" /> Expansions</h2>
           <p className="hint" style={{ marginTop: '-0.4rem' }}>Optional — stack as many as you like.</p>
           <div className="mode-list">
-            {expansions.map((exp) => (
+            {expansions.map((exp) => {
+              const ExpIcon = resolvePackIcon(exp)
+              return (
               <div key={exp.id}>
                 <label className={`mode-row ${expansionIds.includes(exp.id) ? 'selected' : ''}`}>
                   <input
@@ -100,7 +108,12 @@ export default function CreateSession() {
                   />
                   <div>
                     <div className="mode-name">
-                      {exp.emoji} {exp.name}
+                      <ExpIcon
+                        size={15}
+                        strokeWidth={2.25}
+                        style={{ marginRight: '0.3rem', verticalAlign: '-2px' }}
+                      />
+                      {exp.name}
                     </div>
                     <div className="mode-desc">{exp.description}</div>
                   </div>
@@ -109,7 +122,8 @@ export default function CreateSession() {
                   <Printer size={14} strokeWidth={2.25} /> Print as cards
                 </Link>
               </div>
-            ))}
+              )
+            })}
           </div>
         </section>
       )}

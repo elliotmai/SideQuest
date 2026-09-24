@@ -17,12 +17,9 @@
   --gradient-sunset: linear-gradient(135deg, var(--coral) 0%, var(--mustard) 100%);
   --gradient-dusk: linear-gradient(135deg, var(--plum) 0%, var(--coral) 55%, var(--mustard) 100%);
 
-  /* Frosted-glass surface: lets the illustrated road backdrop show through
-     every card instead of hiding behind flat opaque panels. */
-  --glass-bg: rgba(253, 248, 236, 0.72);
-  --glass-bg-strong: rgba(253, 248, 236, 0.88);
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --glass-blur: 18px;
+  /* Solid card/surface treatment. */
+  --surface: var(--paper-card);
+  --surface-border: rgba(58, 36, 24, 0.08);
 
   /* Spacing scale — used for nearly all margin/padding/gap so rhythm stays consistent. */
   --sp-1: 0.25rem;
