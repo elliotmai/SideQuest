@@ -9,17 +9,23 @@ import {
   arrayRemove,
   query,
   where,
-  getDocs,
   onSnapshot,
 } from 'firebase/firestore'
 import { db } from '../firebase'
+import { usernameKey } from './usernames'
 
+// Looks the name up in the `usernames/{lowercasedKey}` collection (the same
+// one username-uniqueness claims live in) rather than querying `users` by
+// its `username` field directly — that field keeps its original casing, so
+// an exact-match query silently misses anything typed in different case.
 export async function findUserByUsername(username) {
-  const q = query(collection(db, 'users'), where('username', '==', username))
-  const snap = await getDocs(q)
-  if (snap.empty) return null
-  const d = snap.docs[0]
-  return { uid: d.id, ...d.data() }
+  const key = usernameKey(username)
+  if (!key) return null
+  const claimSnap = await getDoc(doc(db, 'usernames', key))
+  if (!claimSnap.exists()) return null
+  const userSnap = await getDoc(doc(db, 'users', claimSnap.data().uid))
+  if (!userSnap.exists()) return null
+  return { uid: userSnap.id, ...userSnap.data() }
 }
 
 export async function getUsersByIds(uids) {
@@ -28,14 +34,17 @@ export async function getUsersByIds(uids) {
   return snaps.filter((s) => s.exists()).map((s) => ({ uid: s.id, ...s.data() }))
 }
 
+// One-directional by design: Firestore rules only let a user write their own
+// profile doc (see firestore.rules), so this can't also update the other
+// person's `friends` array — that write would be rejected server-side.
+// "Friends" here really means "people I can quickly add to a group", which
+// only needs to live on the adder's own doc.
 export async function addFriend(myUid, friendUid) {
   await updateDoc(doc(db, 'users', myUid), { friends: arrayUnion(friendUid) })
-  await updateDoc(doc(db, 'users', friendUid), { friends: arrayUnion(myUid) })
 }
 
 export async function removeFriend(myUid, friendUid) {
   await updateDoc(doc(db, 'users', myUid), { friends: arrayRemove(friendUid) })
-  await updateDoc(doc(db, 'users', friendUid), { friends: arrayRemove(myUid) })
 }
 
 export async function createGroup(ownerUid, name, memberUids = []) {
