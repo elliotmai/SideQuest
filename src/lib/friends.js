@@ -10,6 +10,7 @@ import {
   query,
   where,
   onSnapshot,
+  writeBatch,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { usernameKey } from './usernames'
@@ -34,17 +35,24 @@ export async function getUsersByIds(uids) {
   return snaps.filter((s) => s.exists()).map((s) => ({ uid: s.id, ...s.data() }))
 }
 
-// One-directional by design: Firestore rules only let a user write their own
-// profile doc (see firestore.rules), so this can't also update the other
-// person's `friends` array — that write would be rejected server-side.
-// "Friends" here really means "people I can quickly add to a group", which
-// only needs to live on the adder's own doc.
+// Bidirectional: adding a friend adds each of you to the other's list.
+// firestore.rules carries a narrow rule letting someone add/remove only
+// their own uid on someone else's `friends` array (nothing else) — that's
+// what makes the second write here legal. Batched so the two writes commit
+// or fail together — a half-applied friendship (one side has it, the other
+// doesn't) would otherwise be a real possibility on any mid-flight failure.
 export async function addFriend(myUid, friendUid) {
-  await updateDoc(doc(db, 'users', myUid), { friends: arrayUnion(friendUid) })
+  const batch = writeBatch(db)
+  batch.update(doc(db, 'users', myUid), { friends: arrayUnion(friendUid) })
+  batch.update(doc(db, 'users', friendUid), { friends: arrayUnion(myUid) })
+  await batch.commit()
 }
 
 export async function removeFriend(myUid, friendUid) {
-  await updateDoc(doc(db, 'users', myUid), { friends: arrayRemove(friendUid) })
+  const batch = writeBatch(db)
+  batch.update(doc(db, 'users', myUid), { friends: arrayRemove(friendUid) })
+  batch.update(doc(db, 'users', friendUid), { friends: arrayRemove(myUid) })
+  await batch.commit()
 }
 
 export async function createGroup(ownerUid, name, memberUids = []) {

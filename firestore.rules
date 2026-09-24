@@ -44,6 +44,17 @@ service cloud.firestore {
         (!('isAdmin' in request.resource.data) ||
           (resource != null && request.resource.data.isAdmin == resource.data.isAdmin) ||
           isAdmin());
+
+      // Friendship is bidirectional (see lib/friends.js), which means adding
+      // or removing a friend has to write to *someone else's* doc too. This
+      // narrow rule allows exactly that and nothing else: another signed-in
+      // user may add or remove only their own uid from this doc's `friends`
+      // array — every other field, and every other entry in that array,
+      // must come out identical to how it went in.
+      allow update: if request.auth != null && request.auth.uid != uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends']) &&
+        request.resource.data.friends.removeAll([request.auth.uid])
+          == resource.data.friends.removeAll([request.auth.uid]);
     }
 
     // Friend groups: readable/writable by members only.
