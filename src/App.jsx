@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Home from './pages/Home'
 import CreateSession from './pages/CreateSession'
@@ -12,6 +12,7 @@ import './App.css'
 
 function Shell({ children }) {
   const { loading, user, profile } = useAuth()
+  const location = useLocation()
   if (loading) {
     return (
       <div className="page">
@@ -35,6 +36,11 @@ function Shell({ children }) {
   return (
     <>
       <nav className="topnav">
+        {location.pathname !== '/' && (
+          <Link to="/" className="topnav-home-link">
+            &larr; Home
+          </Link>
+        )}
         <Link to="/" className="topnav-brand">
           Side Quest
         </Link>
