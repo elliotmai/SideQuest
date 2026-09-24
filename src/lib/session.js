@@ -75,7 +75,10 @@ export function subscribeEvents(code, cb) {
 
 // `drink`/`points` are already fully resolved (mode modifiers + any consumed
 // multiplier applied) by the caller — see data/modes.js#resolveDrink.
-export async function logEvent(code, { uid, name, eventId, eventLabel, drink, points }) {
+// `deck`, if given, is { hand, stock, discard } after playCard() — persisted
+// in the same write as the score so a page refresh mid-animation can't lose
+// or duplicate a card.
+export async function logEvent(code, { uid, name, eventId, eventLabel, drink, points, deck }) {
   const upperCode = code.toUpperCase()
   await addDoc(collection(db, 'sessions', upperCode, 'events'), {
     uid,
@@ -90,11 +93,12 @@ export async function logEvent(code, { uid, name, eventId, eventLabel, drink, po
     score: increment(points),
     drinkUnits: increment(drink.amount),
     pendingMultiplier: 1,
+    ...(deck ? { hand: deck.hand, stock: deck.stock, discard: deck.discard } : {}),
   })
 }
 
 // Arms a multiplier card for the tapping player's *next* scored event only.
-export async function armMultiplier(code, { uid, name, eventId, eventLabel, factor }) {
+export async function armMultiplier(code, { uid, name, eventId, eventLabel, factor, deck }) {
   const upperCode = code.toUpperCase()
   await addDoc(collection(db, 'sessions', upperCode, 'events'), {
     uid,
@@ -106,5 +110,11 @@ export async function armMultiplier(code, { uid, name, eventId, eventLabel, fact
   })
   await updateDoc(doc(db, 'sessions', upperCode, 'players', uid), {
     pendingMultiplier: factor,
+    ...(deck ? { hand: deck.hand, stock: deck.stock, discard: deck.discard } : {}),
   })
+}
+
+// Deals a player's personal hand/stock/discard piles for this session, once.
+export async function dealPlayerDeck(code, uid, { hand, stock, discard }) {
+  await updateDoc(doc(db, 'sessions', code.toUpperCase(), 'players', uid), { hand, stock, discard })
 }

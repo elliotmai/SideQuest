@@ -357,33 +357,136 @@
   font-size: 0.9rem;
 }
 
-.event-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.6rem;
-}
-
-.event-tile {
-  background: var(--paper-card);
-  text-align: left;
-  padding: 0.8rem 1.05rem;
-  border-radius: 12px;
+.pile-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
-  border: 1.5px solid transparent;
-  box-shadow: 0 1px 0 var(--dashes);
-  font-weight: 500;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.event-points {
-  font-weight: 800;
-  color: var(--coral);
+.pile {
+  position: relative;
   flex-shrink: 0;
-  font-size: 0.85rem;
+  width: 46px;
+  height: 64px;
+}
+
+.pile-card-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: var(--coral);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 rgba(58, 36, 24, 0.3), 6px 6px 0 rgba(58, 36, 24, 0.15);
+}
+
+.pile-card-back::after {
+  content: 'SQ';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--paper-card);
+  font-family: 'Alfa Slab One', serif;
+  font-size: 0.7rem;
+}
+
+.pile-card-back.discard {
+  background: var(--paper-card);
+}
+
+.pile-card-back.discard::after {
+  content: '';
+}
+
+.pile-count {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  background: var(--ink);
+  color: var(--paper-card);
+  border-radius: 999px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.hand-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.play-card {
+  width: 84px;
+  height: 118px;
+  flex-shrink: 0;
+  background: var(--paper-card);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 3px 3px 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.5rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.72rem;
+  line-height: 1.15;
+}
+
+.play-card.multiplier {
+  background: var(--mustard);
+}
+
+.play-card-label {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.play-card-badge {
+  font-family: 'Alfa Slab One', serif;
+  font-size: 0.62rem;
+  color: var(--coral);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  align-self: flex-end;
+}
+
+.play-card.multiplier .play-card-badge {
+  color: var(--ink);
+}
+
+.play-card.playing {
+  animation: card-discard 300ms ease forwards;
+  pointer-events: none;
+}
+
+.play-card.incoming {
+  animation: card-deal 300ms ease;
+}
+
+@keyframes card-discard {
+  to {
+    transform: translateY(-50px) scale(0.55) rotate(12deg);
+    opacity: 0;
+  }
+}
+
+@keyframes card-deal {
+  from {
+    transform: translateY(40px) scale(0.6);
+    opacity: 0;
+  }
 }
 
 .group-list {

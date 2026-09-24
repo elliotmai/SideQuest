@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getPackOnce, getExpansionOnce } from '../lib/decks'
 import { resolveDrink } from '../data/modes'
 import { drinkLabel } from '../data/drinks'
+import { buildDeckInstances, dealHand, playCard } from '../lib/cardGame'
 import RoadScene from '../components/RoadScene'
 import {
   subscribeSession,
@@ -12,7 +13,10 @@ import {
   logEvent,
   armMultiplier,
   joinSession,
+  dealPlayerDeck,
 } from '../lib/session'
+
+const ANIM_MS = 300
 
 export default function SessionView() {
   const { code } = useParams()
@@ -24,6 +28,10 @@ export default function SessionView() {
   const [players, setPlayers] = useState([])
   const [activity, setActivity] = useState([])
   const [flash, setFlash] = useState(null)
+  const [myDeck, setMyDeck] = useState(null) // { hand, stock, discard } — locally owned, optimistic
+  const [playingIndex, setPlayingIndex] = useState(null)
+  const [incomingIndex, setIncomingIndex] = useState(null)
+  const dealtRef = useRef(false)
 
   useEffect(() => {
     const unsub1 = subscribeSession(code, setSession)
@@ -51,45 +59,87 @@ export default function SessionView() {
     }
   }, [session, players, user, code, profile])
 
+  const events = useMemo(
+    () => [...(pack?.events || []), ...expansions.flatMap((e) => e.events || [])],
+    [pack, expansions],
+  )
+  const me = players.find((p) => p.uid === user?.uid)
+
+  // Deal a hand once: either resume what's already saved, or deal a fresh one
+  // the first time this player has events to build a deck from.
+  useEffect(() => {
+    if (dealtRef.current || !me || events.length === 0) return
+    if (me.hand) {
+      setMyDeck({ hand: me.hand, stock: me.stock || [], discard: me.discard || [] })
+      dealtRef.current = true
+      return
+    }
+    const instances = buildDeckInstances(events)
+    const { hand, stock } = dealHand(instances, 5)
+    dealtRef.current = true
+    setMyDeck({ hand, stock, discard: [] })
+    dealPlayerDeck(code, user.uid, { hand, stock, discard: [] })
+  }, [me, events, code, user])
+
   if (session === undefined) return <div className="page">Loading...</div>
   if (session === null) return <div className="page">Game not found.</div>
 
-  const events = [...(pack?.events || []), ...expansions.flatMap((e) => e.events || [])]
   const shareUrl = `${window.location.origin}/join/${code}`
-  const me = players.find((p) => p.uid === user.uid)
   const pendingMultiplier = me?.pendingMultiplier || 1
 
-  async function handleScore(event) {
-    const { drink, points, alcohol, chaosRoll } = resolveDrink(
-      event.drink,
-      session.modifierIds,
-      pendingMultiplier,
-      event.points,
-    )
-    await logEvent(code, {
-      uid: user.uid,
-      name: profile?.username || 'Guest',
-      eventId: event.id,
-      eventLabel: event.label,
-      drink,
-      points,
-    })
-    const label = alcohol ? drinkLabel(drink) : `${points} pts`
-    const multiplierNote = pendingMultiplier > 1 ? ` (×${pendingMultiplier} multiplier used)` : ''
-    const chaosNote = chaosRoll ? ` — 🎲 Chaos rolled ${chaosRoll}!` : ''
-    setFlash({ text: `${event.label} — ${label}${multiplierNote}${chaosNote}` })
-    setTimeout(() => setFlash(null), 2200)
-  }
+  async function playHandCard(index) {
+    if (!myDeck || playingIndex !== null) return
+    const card = myDeck.hand[index]
+    const event = events.find((e) => e.id === card.eventId)
 
-  async function handleMultiplier(event) {
-    await armMultiplier(code, {
-      uid: user.uid,
-      name: profile?.username || 'Guest',
-      eventId: event.id,
-      eventLabel: event.label,
-      factor: event.factor,
-    })
-    setFlash({ text: `${event.label} armed — your next drink is ×${event.factor}!` })
+    const { hand, stock, discard } = playCard(myDeck.hand, myDeck.stock, myDeck.discard, index)
+    const deck = { hand, stock, discard }
+
+    setPlayingIndex(index)
+    setTimeout(() => {
+      setMyDeck(deck)
+      setPlayingIndex(null)
+      setIncomingIndex(index)
+      setTimeout(() => setIncomingIndex(null), ANIM_MS)
+    }, ANIM_MS)
+
+    if (!event) {
+      // Pack changed since this card was dealt — just discard/redraw silently.
+      await dealPlayerDeck(code, user.uid, deck)
+      return
+    }
+
+    if (event.kind === 'multiplier') {
+      await armMultiplier(code, {
+        uid: user.uid,
+        name: profile?.username || 'Guest',
+        eventId: event.id,
+        eventLabel: event.label,
+        factor: event.factor,
+        deck,
+      })
+      setFlash({ text: `${event.label} armed — your next drink is ×${event.factor}!` })
+    } else {
+      const { drink, points, alcohol, chaosRoll } = resolveDrink(
+        event.drink,
+        session.modifierIds,
+        pendingMultiplier,
+        event.points,
+      )
+      await logEvent(code, {
+        uid: user.uid,
+        name: profile?.username || 'Guest',
+        eventId: event.id,
+        eventLabel: event.label,
+        drink,
+        points,
+        deck,
+      })
+      const label = alcohol ? drinkLabel(drink) : `${points} pts`
+      const multiplierNote = pendingMultiplier > 1 ? ` (×${pendingMultiplier} multiplier used)` : ''
+      const chaosNote = chaosRoll ? ` — 🎲 Chaos rolled ${chaosRoll}!` : ''
+      setFlash({ text: `${event.label} — ${label}${multiplierNote}${chaosNote}` })
+    }
     setTimeout(() => setFlash(null), 2200)
   }
 
@@ -156,27 +206,49 @@ export default function SessionView() {
       </section>
 
       <section className="card">
-        <h2>Tap when it happens</h2>
-        <div className="event-grid">
-          {events.map((event) =>
-            event.kind === 'multiplier' ? (
-              <button
-                key={event.id}
-                className="event-tile"
-                style={{ background: 'var(--mustard)' }}
-                onClick={() => handleMultiplier(event)}
-              >
-                {event.label}
-                <span className="event-points">×{event.factor} CARD</span>
-              </button>
-            ) : (
-              <button key={event.id} className="event-tile" onClick={() => handleScore(event)}>
-                {event.label}
-                <span className="event-points">{drinkLabel(event.drink)}</span>
-              </button>
-            ),
-          )}
-        </div>
+        <h2>Your cards</h2>
+        {!myDeck ? (
+          <p className="hint">Dealing your hand...</p>
+        ) : (
+          <>
+            <div className="pile-row">
+              <div className="pile">
+                <div className="pile-card-back" />
+                <span className="pile-count">{myDeck.stock.length}</span>
+              </div>
+              <p className="hint" style={{ margin: 0 }}>
+                Tap a card when it happens — it discards and you draw a fresh one.
+              </p>
+              <div className="pile">
+                <div className="pile-card-back discard" />
+                <span className="pile-count">{myDeck.discard.length}</span>
+              </div>
+            </div>
+
+            <div className="hand-row">
+              {myDeck.hand.map((card, i) => {
+                const event = events.find((e) => e.id === card.eventId)
+                const isMultiplier = event?.kind === 'multiplier'
+                let animClass = ''
+                if (playingIndex === i) animClass = 'playing'
+                else if (incomingIndex === i) animClass = 'incoming'
+                return (
+                  <button
+                    key={card.id}
+                    className={`play-card ${isMultiplier ? 'multiplier' : ''} ${animClass}`}
+                    onClick={() => playHandCard(i)}
+                    disabled={playingIndex !== null || !event}
+                  >
+                    <span className="play-card-label">{event?.label || '...'}</span>
+                    <span className="play-card-badge">
+                      {isMultiplier ? `×${event.factor}` : event ? drinkLabel(event.drink) : ''}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
       </section>
     </div>
   )
