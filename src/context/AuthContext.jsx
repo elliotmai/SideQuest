@@ -99,7 +99,7 @@ export function AuthProvider({ children }) {
     try {
       if (user?.isAnonymous) {
         try {
-          const result = await linkWithPopup(auth, googleProvider)
+          const result = await linkWithPopup(user, googleProvider)
           return result.user
         } catch (err) {
           // Account already exists with these credentials on another user — fall back to plain sign-in.
@@ -117,7 +117,7 @@ export function AuthProvider({ children }) {
         // Navigates away — nothing after this runs; getRedirectResult() on the
         // next load (above) picks up the outcome.
         if (user?.isAnonymous) {
-          await linkWithRedirect(auth, googleProvider)
+          await linkWithRedirect(user, googleProvider)
         } else {
           await signInWithRedirect(auth, googleProvider)
         }
