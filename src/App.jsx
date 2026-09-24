@@ -5,6 +5,7 @@ import CreateSession from './pages/CreateSession'
 import JoinSession from './pages/JoinSession'
 import SessionView from './pages/SessionView'
 import Friends from './pages/Friends'
+import History from './pages/History'
 import Admin from './pages/Admin'
 import Print from './pages/Print'
 import RoadBackdrop from './components/RoadBackdrop'
@@ -79,6 +80,7 @@ export default function App() {
             <Route path="/join/:code" element={<JoinSession />} />
             <Route path="/session/:code" element={<SessionView />} />
             <Route path="/friends" element={<Friends />} />
+            <Route path="/history" element={<History />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/print/:kind/:id" element={<Print />} />
           </Routes>

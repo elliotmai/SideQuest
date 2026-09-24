@@ -6,12 +6,21 @@ import {
   addDoc,
   updateDoc,
   increment,
+  arrayUnion,
   serverTimestamp,
   onSnapshot,
   query,
+  where,
   orderBy,
 } from 'firebase/firestore'
 import { db } from '../firebase'
+
+// Local-date (not UTC) "YYYY-MM-DD" — a session played late at night should
+// still land on the day the player thinks of it as, not shift with UTC.
+function todayKey() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 // Short, shareable, human-typeable code (e.g. "7F3K9Q").
 function generateCode(length = 6) {
@@ -33,6 +42,9 @@ export async function createSession({ packId, expansionIds = [], modifierIds = [
     modifierIds,
     hostUid,
     active: true,
+    notes: '',
+    participantUids: [hostUid],
+    datesPlayed: [todayKey()],
     createdAt: serverTimestamp(),
   })
   await joinSession(code, { uid: hostUid, name: hostName })
@@ -51,12 +63,17 @@ export function subscribeSession(code, cb) {
 }
 
 export async function joinSession(code, { uid, name }) {
-  const ref = doc(db, 'sessions', code.toUpperCase(), 'players', uid)
+  const upperCode = code.toUpperCase()
+  const ref = doc(db, 'sessions', upperCode, 'players', uid)
   await setDoc(
     ref,
     { uid, name, score: 0, drinkUnits: 0, pendingMultiplier: 1, joinedAt: serverTimestamp() },
     { merge: true },
   )
+  await updateDoc(doc(db, 'sessions', upperCode), {
+    participantUids: arrayUnion(uid),
+    datesPlayed: arrayUnion(todayKey()),
+  })
 }
 
 export function subscribePlayers(code, cb) {
@@ -117,4 +134,33 @@ export async function armMultiplier(code, { uid, name, eventId, eventLabel, fact
 // Deals a player's personal hand/stock/discard piles for this session, once.
 export async function dealPlayerDeck(code, uid, { hand, stock, discard }) {
   await updateDoc(doc(db, 'sessions', code.toUpperCase(), 'players', uid), { hand, stock, discard })
+}
+
+export async function endSession(code) {
+  await updateDoc(doc(db, 'sessions', code.toUpperCase()), { active: false, endedAt: serverTimestamp() })
+}
+
+// Reopens an ended session and logs today as another day it was played.
+export async function resumeSession(code) {
+  await updateDoc(doc(db, 'sessions', code.toUpperCase()), {
+    active: true,
+    endedAt: null,
+    datesPlayed: arrayUnion(todayKey()),
+  })
+}
+
+export async function updateSessionNotes(code, notes) {
+  await updateDoc(doc(db, 'sessions', code.toUpperCase()), { notes })
+}
+
+// Every session this player has ever joined, newest-created first. Sorted
+// client-side (rather than an `orderBy` in the query) so this only needs the
+// automatic single-field index Firestore gives `array-contains` for free.
+export function subscribeMySessions(uid, cb) {
+  const q = query(collection(db, 'sessions'), where('participantUids', 'array-contains', uid))
+  return onSnapshot(q, (snap) => {
+    const sessions = snap.docs.map((d) => d.data())
+    sessions.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+    cb(sessions)
+  })
 }

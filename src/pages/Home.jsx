@@ -124,6 +124,11 @@ export default function Home() {
         <h2>Friends &amp; groups</h2>
         <button onClick={() => navigate('/friends')}>Manage friends</button>
       </section>
+
+      <section className="card">
+        <h2>Game history</h2>
+        <button onClick={() => navigate('/history')}>See past &amp; active games</button>
+      </section>
     </div>
   )
 }

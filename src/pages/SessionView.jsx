@@ -14,9 +14,42 @@ import {
   armMultiplier,
   joinSession,
   dealPlayerDeck,
+  endSession,
+  resumeSession,
+  updateSessionNotes,
 } from '../lib/session'
 
 const ANIM_MS = 300
+
+function HandRow({ hand, events, mini = false, onPlay, disabled, animClassFor }) {
+  return (
+    <div className={`hand-row ${mini ? 'mini' : ''}`}>
+      {hand.map((card, i) => {
+        const event = events.find((e) => e.id === card.eventId)
+        const isMultiplier = event?.kind === 'multiplier'
+        const animClass = animClassFor ? animClassFor(i) : ''
+        const className = `play-card ${mini ? 'mini' : ''} ${isMultiplier ? 'multiplier' : ''} ${animClass}`
+        const content = (
+          <>
+            <span className="play-card-label">{event?.label || '...'}</span>
+            <span className="play-card-badge">
+              {isMultiplier ? `×${event.factor}` : event ? drinkLabel(event.drink) : ''}
+            </span>
+          </>
+        )
+        return onPlay ? (
+          <button key={card.id} className={className} onClick={() => onPlay(i)} disabled={disabled || !event}>
+            {content}
+          </button>
+        ) : (
+          <div key={card.id} className={className}>
+            {content}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 export default function SessionView() {
   const { code } = useParams()
@@ -27,10 +60,12 @@ export default function SessionView() {
   const [expansions, setExpansions] = useState([])
   const [players, setPlayers] = useState([])
   const [activity, setActivity] = useState([])
-  const [flash, setFlash] = useState(null)
   const [myDeck, setMyDeck] = useState(null) // { hand, stock, discard } — locally owned, optimistic
   const [playingIndex, setPlayingIndex] = useState(null)
   const [incomingIndex, setIncomingIndex] = useState(null)
+  const [expandedUid, setExpandedUid] = useState(null)
+  const [notesDraft, setNotesDraft] = useState('')
+  const [savingNotes, setSavingNotes] = useState(false)
   const dealtRef = useRef(false)
 
   useEffect(() => {
@@ -50,6 +85,13 @@ export default function SessionView() {
     Promise.all((session.expansionIds || []).map(getExpansionOnce)).then((list) =>
       setExpansions(list.filter(Boolean)),
     )
+  }, [session])
+
+  const notesLoadedRef = useRef(false)
+  useEffect(() => {
+    if (notesLoadedRef.current || !session) return
+    notesLoadedRef.current = true
+    setNotesDraft(session.notes || '')
   }, [session])
 
   // Auto-join if this device landed here directly without going through /join/:code.
@@ -86,6 +128,24 @@ export default function SessionView() {
 
   const shareUrl = `${window.location.origin}/join/${code}`
   const pendingMultiplier = me?.pendingMultiplier || 1
+  const datesPlayed = session.datesPlayed || []
+
+  async function handleSaveNotes() {
+    setSavingNotes(true)
+    try {
+      await updateSessionNotes(code, notesDraft)
+    } finally {
+      setSavingNotes(false)
+    }
+  }
+
+  async function handleEndGame() {
+    await endSession(code)
+  }
+
+  async function handleResumeGame() {
+    await resumeSession(code)
+  }
 
   async function playHandCard(index) {
     if (!myDeck || playingIndex !== null) return
@@ -118,14 +178,8 @@ export default function SessionView() {
         factor: event.factor,
         deck,
       })
-      setFlash({ text: `${event.label} armed — your next drink is ×${event.factor}!` })
     } else {
-      const { drink, points, alcohol, chaosRoll } = resolveDrink(
-        event.drink,
-        session.modifierIds,
-        pendingMultiplier,
-        event.points,
-      )
+      const { drink, points } = resolveDrink(event.drink, session.modifierIds, pendingMultiplier, event.points)
       await logEvent(code, {
         uid: user.uid,
         name: profile?.username || 'Guest',
@@ -135,12 +189,7 @@ export default function SessionView() {
         points,
         deck,
       })
-      const label = alcohol ? drinkLabel(drink) : `${points} pts`
-      const multiplierNote = pendingMultiplier > 1 ? ` (×${pendingMultiplier} multiplier used)` : ''
-      const chaosNote = chaosRoll ? ` — 🎲 Chaos rolled ${chaosRoll}!` : ''
-      setFlash({ text: `${event.label} — ${label}${multiplierNote}${chaosNote}` })
     }
-    setTimeout(() => setFlash(null), 2200)
   }
 
   return (
@@ -162,11 +211,36 @@ export default function SessionView() {
         {pack && <RoadScene signText={`NOW ENTERING ${pack.name.toUpperCase()}`} subText="Pop. you & your crew" />}
       </div>
 
+      {session.active === false && (
+        <div className="flash-toast">This game has ended — reopen it to keep playing.</div>
+      )}
+
+      <section className="card">
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ margin: 0 }}>Game</h2>
+          {session.active === false ? (
+            <button onClick={handleResumeGame}>Resume game</button>
+          ) : (
+            <button onClick={handleEndGame}>End game</button>
+          )}
+        </div>
+        {datesPlayed.length > 0 && (
+          <p className="hint">Played on {datesPlayed.slice().sort().join(', ')}</p>
+        )}
+        <label className="field-label">Notes</label>
+        <textarea
+          value={notesDraft}
+          onChange={(e) => setNotesDraft(e.target.value)}
+          onBlur={handleSaveNotes}
+          placeholder="Who won, what happened, anything to remember..."
+          rows={3}
+        />
+        {savingNotes && <p className="hint">Saving...</p>}
+      </section>
+
       {pendingMultiplier > 1 && (
         <div className="flash-toast">×{pendingMultiplier} multiplier armed — your next tap counts double!</div>
       )}
-
-      {flash && <div className="flash-toast">{flash.text}</div>}
 
       <section className="card">
         <h2>Scoreboard</h2>
@@ -225,31 +299,35 @@ export default function SessionView() {
               </div>
             </div>
 
-            <div className="hand-row">
-              {myDeck.hand.map((card, i) => {
-                const event = events.find((e) => e.id === card.eventId)
-                const isMultiplier = event?.kind === 'multiplier'
-                let animClass = ''
-                if (playingIndex === i) animClass = 'playing'
-                else if (incomingIndex === i) animClass = 'incoming'
-                return (
-                  <button
-                    key={card.id}
-                    className={`play-card ${isMultiplier ? 'multiplier' : ''} ${animClass}`}
-                    onClick={() => playHandCard(i)}
-                    disabled={playingIndex !== null || !event}
-                  >
-                    <span className="play-card-label">{event?.label || '...'}</span>
-                    <span className="play-card-badge">
-                      {isMultiplier ? `×${event.factor}` : event ? drinkLabel(event.drink) : ''}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
+            <HandRow
+              hand={myDeck.hand}
+              events={events}
+              onPlay={playHandCard}
+              disabled={playingIndex !== null}
+              animClassFor={(i) => (playingIndex === i ? 'playing' : incomingIndex === i ? 'incoming' : '')}
+            />
           </>
         )}
       </section>
+
+      {players.some((p) => p.uid !== user.uid && p.hand?.length) && (
+        <section className="card">
+          <h2>Everyone else&rsquo;s cards</h2>
+          <p className="hint">
+            Handy mid-game if someone forgets what their card means — tap a name to see it full-size.
+          </p>
+          {players
+            .filter((p) => p.uid !== user.uid && p.hand?.length)
+            .map((p) => (
+              <div key={p.uid} className="peek-player">
+                <button className="peek-player-toggle" onClick={() => setExpandedUid((id) => (id === p.uid ? null : p.uid))}>
+                  {p.name} {expandedUid === p.uid ? '▾' : '▸'}
+                </button>
+                <HandRow hand={p.hand} events={events} mini={expandedUid !== p.uid} />
+              </div>
+            ))}
+        </section>
+      )}
     </div>
   )
 }
