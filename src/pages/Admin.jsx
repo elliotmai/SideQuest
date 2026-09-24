@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   subscribePacks,
@@ -204,13 +205,17 @@ export default function Admin() {
       <div className="page">
         <h1>Admin</h1>
         <p className="hint">This account isn&rsquo;t an admin.</p>
+        <Link to="/">&larr; Back to Side Quest</Link>
       </div>
     )
   }
 
   return (
     <div className="page">
-      <h1>Admin</h1>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>Admin</h1>
+        <Link to="/">&larr; Back to Side Quest</Link>
+      </div>
 
       <section className="card">
         <h2>Seed defaults</h2>

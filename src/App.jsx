@@ -11,7 +11,7 @@ import RoadBackdrop from './components/RoadBackdrop'
 import './App.css'
 
 function Shell({ children }) {
-  const { loading, user } = useAuth()
+  const { loading, user, profile } = useAuth()
   if (loading) {
     return (
       <div className="page">
@@ -38,6 +38,11 @@ function Shell({ children }) {
         <Link to="/" className="topnav-brand">
           Side Quest
         </Link>
+        {profile?.isAdmin && (
+          <Link to="/admin" className="topnav-admin-link">
+            Admin
+          </Link>
+        )}
       </nav>
       {children}
     </>
