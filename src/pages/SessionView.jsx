@@ -64,6 +64,7 @@ export default function SessionView() {
   const [playingIndex, setPlayingIndex] = useState(null)
   const [incomingIndex, setIncomingIndex] = useState(null)
   const [expandedUid, setExpandedUid] = useState(null)
+  const [showDiscard, setShowDiscard] = useState(false)
   const [notesDraft, setNotesDraft] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
   const dealtRef = useRef(false)
@@ -148,7 +149,7 @@ export default function SessionView() {
   }
 
   async function playHandCard(index) {
-    if (!myDeck || playingIndex !== null) return
+    if (!myDeck || playingIndex !== null || session.active === false) return
     const card = myDeck.hand[index]
     const event = events.find((e) => e.id === card.eventId)
 
@@ -261,7 +262,7 @@ export default function SessionView() {
         <h2>Activity</h2>
         <ol className="scoreboard">
           {activity.length === 0 && <li style={{ border: 'none' }}>No taps yet — be the first.</li>}
-          {activity.slice(0, 12).map((entry) => (
+          {activity.slice(0, 3).map((entry) => (
             <li key={entry.id} style={{ border: 'none', background: 'transparent', padding: '0.25rem 0' }}>
               <span className="player-name" style={{ flex: 'none' }}>
                 {entry.name}
@@ -277,6 +278,9 @@ export default function SessionView() {
             </li>
           ))}
         </ol>
+        {activity.length > 3 && (
+          <p className="hint">+ {activity.length - 3} earlier {activity.length - 3 === 1 ? 'tap' : 'taps'}</p>
+        )}
       </section>
 
       <section className="card">
@@ -291,21 +295,38 @@ export default function SessionView() {
                 <span className="pile-count">{myDeck.stock.length}</span>
               </div>
               <p className="hint" style={{ margin: 0 }}>
-                Tap a card when it happens — it discards and you draw a fresh one.
+                {session.active === false
+                  ? 'This game has ended — resume it to keep playing.'
+                  : 'Tap a card when it happens — it discards and you draw a fresh one.'}
               </p>
-              <div className="pile">
+              <button
+                type="button"
+                className="pile"
+                style={{ background: 'none', boxShadow: 'none', padding: 0 }}
+                onClick={() => setShowDiscard((v) => !v)}
+                disabled={myDeck.discard.length === 0}
+              >
                 <div className="pile-card-back discard" />
                 <span className="pile-count">{myDeck.discard.length}</span>
-              </div>
+              </button>
             </div>
 
             <HandRow
               hand={myDeck.hand}
               events={events}
               onPlay={playHandCard}
-              disabled={playingIndex !== null}
+              disabled={playingIndex !== null || session.active === false}
               animClassFor={(i) => (playingIndex === i ? 'playing' : incomingIndex === i ? 'incoming' : '')}
             />
+
+            {showDiscard && myDeck.discard.length > 0 && (
+              <>
+                <h3 className="field-label" style={{ marginTop: '0.8rem' }}>
+                  Completed cards
+                </h3>
+                <HandRow hand={myDeck.discard.slice().reverse()} events={events} mini />
+              </>
+            )}
           </>
         )}
       </section>
