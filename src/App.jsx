@@ -5,14 +5,29 @@ import CreateSession from './pages/CreateSession'
 import JoinSession from './pages/JoinSession'
 import SessionView from './pages/SessionView'
 import Friends from './pages/Friends'
+import Admin from './pages/Admin'
+import Print from './pages/Print'
 import './App.css'
 
 function Shell({ children }) {
-  const { loading } = useAuth()
+  const { loading, user } = useAuth()
   if (loading) {
     return (
       <div className="page">
         <p>Loading Side Quest...</p>
+      </div>
+    )
+  }
+  if (!user) {
+    return (
+      <div className="page">
+        <h1 className="brand">Side Quest</h1>
+        <p>
+          Couldn&rsquo;t connect. Check your internet connection and reload the page.
+        </p>
+        <button className="primary" onClick={() => window.location.reload()}>
+          Retry
+        </button>
       </div>
     )
   }
@@ -39,6 +54,8 @@ export default function App() {
             <Route path="/join/:code" element={<JoinSession />} />
             <Route path="/session/:code" element={<SessionView />} />
             <Route path="/friends" element={<Friends />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/print/:kind/:id" element={<Print />} />
           </Routes>
         </Shell>
       </BrowserRouter>

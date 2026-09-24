@@ -15,6 +15,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [authError, setAuthError] = useState(null)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -23,25 +24,40 @@ export function AuthProvider({ children }) {
           await signInAnonymously(auth)
         } catch (err) {
           console.error('Anonymous sign-in failed', err)
+          setAuthError(err)
           setLoading(false)
         }
         return
       }
       setUser(firebaseUser)
-      const ref = doc(db, 'users', firebaseUser.uid)
-      const snap = await getDoc(ref)
-      if (snap.exists()) {
-        setProfile(snap.data())
-      } else {
-        const initial = {
+      try {
+        const ref = doc(db, 'users', firebaseUser.uid)
+        const snap = await getDoc(ref)
+        if (snap.exists()) {
+          setProfile(snap.data())
+        } else {
+          const initial = {
+            username: localStorage.getItem('sq_username') || `Guest${firebaseUser.uid.slice(0, 4)}`,
+            isAnonymous: firebaseUser.isAnonymous,
+            friends: [],
+            groups: [],
+            createdAt: serverTimestamp(),
+          }
+          await setDoc(ref, initial)
+          setProfile(initial)
+        }
+        setAuthError(null)
+      } catch (err) {
+        // Signed in fine, but couldn't read/create the profile doc (e.g. Firestore rules
+        // not deployed yet). Fall back to a local-only profile so the app stays usable.
+        console.error('Failed to load profile', err)
+        setAuthError(err)
+        setProfile({
           username: localStorage.getItem('sq_username') || `Guest${firebaseUser.uid.slice(0, 4)}`,
           isAnonymous: firebaseUser.isAnonymous,
           friends: [],
           groups: [],
-          createdAt: serverTimestamp(),
-        }
-        await setDoc(ref, initial)
-        setProfile(initial)
+        })
       }
       setLoading(false)
     })
@@ -78,7 +94,7 @@ export function AuthProvider({ children }) {
     await firebaseSignOut(auth)
   }
 
-  const value = { user, profile, setProfile, loading, setUsername, signInWithGoogle, signOut }
+  const value = { user, profile, setProfile, loading, authError, setUsername, signInWithGoogle, signOut }
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
