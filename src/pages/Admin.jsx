@@ -14,6 +14,7 @@ import {
 import { STANDARD_DECK, JOKERS } from '../data/cards'
 import { pointsForDrink } from '../data/drinks'
 import { importDeckFile } from '../lib/importDeck'
+import { resolvePackIcon } from '../lib/packIcon'
 
 const IMPORT_ACCEPT = '.json,.xlsx,.xls,.csv,application/json,text/csv'
 
@@ -316,9 +317,13 @@ function DeckSection({ title, decks, onDelete, saveFn }) {
       {importError && <p className="hint" style={{ color: 'var(--coral)' }}>{importError}</p>}
 
       <div className="admin-deck-list">
-        {decks.map((deck) => (
+        {decks.map((deck) => {
+          const DeckIcon = resolvePackIcon(deck)
+          return (
           <div key={deck.id} className="admin-deck-row">
-            <span className="admin-deck-emoji">{deck.emoji}</span>
+            <span className="admin-deck-emoji">
+              <DeckIcon size={20} strokeWidth={2.25} />
+            </span>
             <div className="admin-deck-info">
               <div className="admin-deck-name">{deck.name}</div>
               <div className="hint">{deck.events?.length || 0} events</div>
@@ -328,7 +333,8 @@ function DeckSection({ title, decks, onDelete, saveFn }) {
               <button onClick={() => onDelete(deck.id)}>Delete</button>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {editing ? (

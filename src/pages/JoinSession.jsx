@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getSession, joinSession } from '../lib/session'
 import { getPackOnce } from '../lib/decks'
+import { resolvePackIcon } from '../lib/packIcon'
 import { MODIFIERS } from '../data/modes'
 import UsernameStatus from '../components/UsernameStatus'
 import Loading from '../components/Loading'
@@ -18,6 +19,7 @@ export default function JoinSession() {
   const [joining, setJoining] = useState(false)
   const [joinError, setJoinError] = useState(null)
   const usernameStatus = useUsernameAvailability(nameDraft, profile?.username, user?.uid)
+  const PackIcon = useMemo(() => resolvePackIcon(pack), [pack])
 
   useEffect(() => {
     getSession(code).then(async (s) => {
@@ -66,7 +68,9 @@ export default function JoinSession() {
     <div className="page">
       <h1>Join game</h1>
       <div className="card">
-        <div className="pack-emoji-big">{pack?.emoji}</div>
+        <div className="pack-emoji-big">
+          <PackIcon size={40} strokeWidth={2} />
+        </div>
         <h2>{pack?.name}</h2>
         <p className="hint">
           {activeModifiers.length ? activeModifiers.map((m) => m.name).join(' + ') : 'Standard'} rules

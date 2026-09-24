@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Printer, TrafficCone, Trophy, Medal, Megaphone, Layers, Eye, ChevronRight } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getPackOnce, getExpansionOnce } from '../lib/decks'
+import { resolvePackIcon } from '../lib/packIcon'
 import { resolveDrink } from '../data/modes'
 import { drinkLabel } from '../data/drinks'
 import { buildDeckInstances, dealHand, playCard } from '../lib/cardGame'
@@ -210,8 +211,12 @@ export default function SessionView() {
   return (
     <div className="page">
       <div className="session-header">
-        <h1>
-          {pack?.emoji} {pack?.name}
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {pack && (() => {
+            const Icon = resolvePackIcon(pack)
+            return <Icon size={28} strokeWidth={2.25} />
+          })()}
+          {pack?.name}
         </h1>
         <p className="hint">
           Code: <strong>{code}</strong>

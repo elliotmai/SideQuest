@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { getPackOnce, getExpansionOnce } from '../lib/decks'
 import { buildCardAssignments } from '../data/cards'
 import { drinkLabel, pointsForDrink } from '../data/drinks'
+import { resolvePackIcon } from '../lib/packIcon'
 import Loading from '../components/Loading'
 
 export default function Print() {
   const { kind, id } = useParams()
   const [deck, setDeck] = useState(undefined)
+  const DeckIcon = useMemo(() => resolvePackIcon(deck), [deck])
 
   useEffect(() => {
     const fetcher = kind === 'expansion' ? getExpansionOnce : getPackOnce
@@ -27,8 +29,9 @@ export default function Print() {
   return (
     <div className="page print-page">
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>
-          {deck.emoji} {deck.name}
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <DeckIcon size={24} strokeWidth={2.25} />
+          {deck.name}
         </h1>
         <button className="primary" style={{ width: 'auto' }} onClick={() => window.print()}>
           Print
