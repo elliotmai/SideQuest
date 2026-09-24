@@ -142,6 +142,144 @@
   margin: 0;
   font-size: 1.05rem;
   color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.card-icon.coral {
+  background: var(--coral-wash);
+}
+
+.card-icon.mustard {
+  background: #fdf1cf;
+}
+
+.card-icon.pine {
+  background: var(--pine-wash);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-family: 'Alfa Slab One', serif;
+  color: var(--paper-card);
+  flex-shrink: 0;
+}
+
+.avatar-md {
+  width: 2.6rem;
+  height: 2.6rem;
+  font-size: 1.05rem;
+}
+
+.avatar-coral {
+  background: var(--coral);
+}
+
+.avatar-mustard {
+  background: var(--mustard-deep);
+}
+
+.avatar-pine {
+  background: var(--pine);
+}
+
+.profile-strip {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.profile-strip-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-strip-name {
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-strip-sub {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero-card {
+  position: relative;
+  padding-top: 1.3rem;
+}
+
+.hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 1.25rem;
+  right: 1.25rem;
+  height: 5px;
+  border-radius: 0 0 4px 4px;
+  background: repeating-linear-gradient(90deg, var(--coral) 0 14px, var(--mustard) 14px 28px);
+}
+
+.hero-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hero-divider::before,
+.hero-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  border-top: 1.5px dashed var(--dashes);
+}
+
+.tile-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+.quick-tile {
+  background: var(--paper-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sticker);
+  padding: 1rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.quick-tile:hover:not(:disabled) {
+  transform: translateY(-2px);
 }
 
 /* A button on its own directly inside a card (not wrapped in a .row, not
@@ -242,14 +380,14 @@ button.pack-tile:active:not(:disabled) {
 }
 
 .pack-emoji {
-  width: 32px;
-  height: 32px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: var(--cream);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 1.35rem;
 }
 
 .pack-tile.selected .pack-emoji {
