@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import { getSession, joinSession } from '../lib/session'
 import { getPackOnce } from '../lib/decks'
 import { MODIFIERS } from '../data/modes'
+import UsernameStatus from '../components/UsernameStatus'
+import { useUsernameAvailability } from '../lib/useUsernameAvailability'
 
 export default function JoinSession() {
   const { code } = useParams()
@@ -13,6 +15,8 @@ export default function JoinSession() {
   const [pack, setPack] = useState(null)
   const [nameDraft, setNameDraft] = useState(profile?.username || '')
   const [joining, setJoining] = useState(false)
+  const [joinError, setJoinError] = useState(null)
+  const usernameStatus = useUsernameAvailability(nameDraft, profile?.username, user?.uid)
 
   useEffect(() => {
     getSession(code).then(async (s) => {
@@ -23,9 +27,15 @@ export default function JoinSession() {
 
   async function handleJoin() {
     setJoining(true)
+    setJoinError(null)
     try {
       if (nameDraft.trim() && nameDraft.trim() !== profile?.username) {
-        await setUsername(nameDraft.trim())
+        try {
+          await setUsername(nameDraft.trim())
+        } catch (err) {
+          setJoinError(err.message === 'taken' ? 'That username is already taken.' : 'Could not save username.')
+          return
+        }
       }
       await joinSession(code, { uid: user.uid, name: nameDraft.trim() || 'Guest' })
       navigate(`/session/${code}`)
@@ -63,8 +73,14 @@ export default function JoinSession() {
           onChange={(e) => setNameDraft(e.target.value)}
           placeholder="Enter a username"
         />
+        <UsernameStatus status={usernameStatus} />
+        {joinError && <p className="hint" style={{ color: 'var(--coral)' }}>{joinError}</p>}
       </section>
-      <button className="primary" onClick={handleJoin} disabled={joining || !nameDraft.trim()}>
+      <button
+        className="primary"
+        onClick={handleJoin}
+        disabled={joining || !nameDraft.trim() || usernameStatus === 'taken' || usernameStatus === 'checking'}
+      >
         {joining ? 'Joining...' : 'Join game'}
       </button>
     </div>

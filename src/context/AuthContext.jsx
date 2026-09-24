@@ -11,6 +11,7 @@ import {
 } from 'firebase/auth'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, googleProvider, db, getDocFreshFirst } from '../firebase'
+import { claimUsername } from '../lib/usernames'
 
 const AuthContext = createContext(null)
 
@@ -49,8 +50,17 @@ export function AuthProvider({ children }) {
         if (snap.exists()) {
           setProfile(snap.data())
         } else {
+          let username = localStorage.getItem('sq_username') || `Guest${firebaseUser.uid.slice(0, 4)}`
+          try {
+            await claimUsername(username, firebaseUser.uid)
+          } catch {
+            // Someone already has that name — fall back to one namespaced by
+            // enough of our own uid that it can't collide with anyone else's.
+            username = `Guest${firebaseUser.uid.slice(0, 8)}`
+            await claimUsername(username, firebaseUser.uid).catch(() => {})
+          }
           const initial = {
-            username: localStorage.getItem('sq_username') || `Guest${firebaseUser.uid.slice(0, 4)}`,
+            username,
             isAnonymous: firebaseUser.isAnonymous,
             friends: [],
             groups: [],
@@ -78,11 +88,12 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function setUsername(username) {
-    localStorage.setItem('sq_username', username)
-    if (user) {
-      await setDoc(doc(db, 'users', user.uid), { username }, { merge: true })
-      setProfile((p) => ({ ...p, username }))
-    }
+    const trimmed = username.trim()
+    if (!trimmed || !user) return
+    await claimUsername(trimmed, user.uid, profile?.username)
+    localStorage.setItem('sq_username', trimmed)
+    await setDoc(doc(db, 'users', user.uid), { username: trimmed }, { merge: true })
+    setProfile((p) => ({ ...p, username: trimmed }))
   }
 
   // Codes where retrying with a full-page redirect actually has a shot at working
