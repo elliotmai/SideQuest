@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { getPackOnce, getExpansionOnce } from '../lib/decks'
 import { resolveDrink } from '../data/modes'
 import { drinkLabel } from '../data/drinks'
+import RoadScene from '../components/RoadScene'
 import {
   subscribeSession,
   subscribePlayers,
@@ -59,7 +60,11 @@ export default function SessionView() {
   const pendingMultiplier = me?.pendingMultiplier || 1
 
   async function handleScore(event) {
-    const { drink, points, alcohol } = resolveDrink(event.drink, session.modifierIds, pendingMultiplier)
+    const { drink, points, alcohol, chaosRoll } = resolveDrink(
+      event.drink,
+      session.modifierIds,
+      pendingMultiplier,
+    )
     await logEvent(code, {
       uid: user.uid,
       name: profile?.username || 'Guest',
@@ -70,7 +75,8 @@ export default function SessionView() {
     })
     const label = alcohol ? drinkLabel(drink) : `${points} pts`
     const multiplierNote = pendingMultiplier > 1 ? ` (×${pendingMultiplier} multiplier used)` : ''
-    setFlash({ text: `${event.label} — ${label}${multiplierNote}` })
+    const chaosNote = chaosRoll ? ` — 🎲 Chaos rolled ${chaosRoll}!` : ''
+    setFlash({ text: `${event.label} — ${label}${multiplierNote}${chaosNote}` })
     setTimeout(() => setFlash(null), 2200)
   }
 
@@ -102,6 +108,7 @@ export default function SessionView() {
             <button onClick={() => navigate(`/print/pack/${session.packId}`)}>🖨️ Print cards</button>
           )}
         </div>
+        {pack && <RoadScene bare signText={`NOW ENTERING ${pack.name.toUpperCase()}`} subText="Pop. you & your crew" />}
       </div>
 
       {pendingMultiplier > 1 && (

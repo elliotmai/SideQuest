@@ -15,7 +15,7 @@ export const MODIFIERS = [
   {
     id: 'chaos',
     name: 'Chaos',
-    description: 'Double every drink amount and point value.',
+    description: 'Every tap rolls the dice: usually normal, sometimes ×2 or ×3, sometimes shot-ified.',
   },
 ]
 
@@ -23,26 +23,42 @@ export function getModifiers(ids = []) {
   return MODIFIERS.filter((m) => ids.includes(m.id))
 }
 
+// Chaos is a per-tap dice roll, not a flat multiplier: most taps are unaffected,
+// but some get doubled, tripled, or turned into a shot outright.
+function rollChaos() {
+  const r = Math.random()
+  if (r < 0.45) return { factor: 1, shotify: false, label: null }
+  if (r < 0.7) return { factor: 2, shotify: false, label: '×2' }
+  if (r < 0.85) return { factor: 3, shotify: false, label: '×3' }
+  return { factor: 1, shotify: true, label: 'shot-ified' }
+}
+
 // Combines active modifiers + any pending per-player multiplier (from a multiplier
-// card) with a base drink outcome. Order: Chaos/multiplier scale amount up,
-// then No Shots caps it back down, then Clean zeroes alcohol out entirely.
+// card) with a base drink outcome. Order: Chaos's roll + the card multiplier scale
+// severity up (used for scoring), then No Shots caps the *delivered* instruction
+// back down to one drink (capping what you drink, not what it's worth), then Clean
+// zeroes the delivered drink out entirely while keeping the points.
 export function resolveDrink(baseDrink, modifierIds = [], playerMultiplier = 1) {
   const active = new Set(modifierIds)
-  let amount = baseDrink.amount * (active.has('chaos') ? 2 : 1) * playerMultiplier
-  let type = baseDrink.type
+  const chaosActive = active.has('chaos')
+  const roll = chaosActive ? rollChaos() : { factor: 1, shotify: false, label: null }
 
+  const severityType = roll.shotify ? 'shot' : baseDrink.type
+  const severityAmount = (roll.shotify ? 1 : baseDrink.amount) * roll.factor * playerMultiplier
+  const points = pointsForDrink({ type: severityType, amount: severityAmount })
+
+  let deliveredType = severityType
+  let deliveredAmount = severityAmount
   if (active.has('no-shots')) {
-    type = 'count'
-    amount = 1
+    deliveredType = 'count'
+    deliveredAmount = 1
   }
 
-  const points = pointsForDrink({ type: baseDrink.type, amount: baseDrink.amount }) *
-    (active.has('chaos') ? 2 : 1) *
-    playerMultiplier
+  const chaosRoll = chaosActive ? roll.label : null
 
   if (active.has('clean')) {
-    return { drink: { type: 'count', amount: 0 }, points, alcohol: false }
+    return { drink: { type: 'count', amount: 0 }, points, alcohol: false, chaosRoll }
   }
 
-  return { drink: { type, amount }, points, alcohol: true }
+  return { drink: { type: deliveredType, amount: deliveredAmount }, points, alcohol: true, chaosRoll }
 }
