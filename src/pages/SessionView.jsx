@@ -64,6 +64,7 @@ export default function SessionView() {
       event.drink,
       session.modifierIds,
       pendingMultiplier,
+      event.points,
     )
     await logEvent(code, {
       uid: user.uid,

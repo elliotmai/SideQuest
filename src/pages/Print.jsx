@@ -53,7 +53,7 @@ export default function Print() {
                 {event.kind === 'multiplier'
                   ? `×${event.factor} multiplier`
                   : (() => {
-                      const pts = pointsForDrink(event.drink)
+                      const pts = event.points ?? pointsForDrink(event.drink)
                       return `${drinkLabel(event.drink)} · ${pts} pt${pts === 1 ? '' : 's'}`
                     })()}
               </td>
