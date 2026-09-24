@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Home from './pages/Home'
 import CreateSession from './pages/CreateSession'
@@ -13,6 +13,18 @@ import './App.css'
 function Shell({ children }) {
   const { loading, user, profile } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
+
+  // Prefer the actual previous page (browser back); only fall back to Home
+  // when there's no in-app history to go back to (e.g. a shared link opened
+  // straight into a session).
+  function goBack() {
+    if (window.history.state?.idx > 0) {
+      navigate(-1)
+    } else {
+      navigate('/')
+    }
+  }
   if (loading) {
     return (
       <div className="page">
@@ -37,9 +49,9 @@ function Shell({ children }) {
     <>
       <nav className="topnav">
         {location.pathname !== '/' && (
-          <Link to="/" className="topnav-home-link">
-            &larr; Home
-          </Link>
+          <button type="button" onClick={goBack} className="topnav-home-link">
+            &larr; Back
+          </button>
         )}
         <Link to="/" className="topnav-brand">
           Side Quest
