@@ -62,7 +62,7 @@ export default function CreateSession() {
       )}
 
       <section className="card">
-        <h2>Pick a pack</h2>
+        <h2><span className="card-icon coral">🎒</span> Pick a pack</h2>
         <div className="pack-grid">
           {packs.map((pack) => (
             <button
@@ -85,7 +85,8 @@ export default function CreateSession() {
 
       {expansions.length > 0 && (
         <section className="card">
-          <h2>Expansions (optional, stack any number)</h2>
+          <h2><span className="card-icon mustard">➕</span> Expansions</h2>
+          <p className="hint" style={{ marginTop: '-0.4rem' }}>Optional — stack as many as you like.</p>
           <div className="mode-list">
             {expansions.map((exp) => (
               <div key={exp.id}>
@@ -112,7 +113,8 @@ export default function CreateSession() {
       )}
 
       <section className="card">
-        <h2>Modifiers (optional, stack any number)</h2>
+        <h2><span className="card-icon pine">⚙️</span> Modifiers</h2>
+        <p className="hint" style={{ marginTop: '-0.4rem' }}>Optional — stack as many as you like.</p>
         <div className="mode-list">
           {MODIFIERS.map((mod) => (
             <label key={mod.id} className={`mode-row ${modifierIds.includes(mod.id) ? 'selected' : ''}`}>

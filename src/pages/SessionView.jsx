@@ -229,8 +229,10 @@ export default function SessionView() {
       )}
 
       <section className="card">
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0 }}>Game</h2>
+        <div className="row between">
+          <h2>
+            <span className="card-icon coral">🚦</span> Game
+          </h2>
           {session.active === false ? (
             <button onClick={handleResumeGame}>Resume game</button>
           ) : (
@@ -256,7 +258,7 @@ export default function SessionView() {
       )}
 
       <section className="card">
-        <h2>Scoreboard</h2>
+        <h2><span className="card-icon mustard">🏆</span> Scoreboard</h2>
         <ol className="scoreboard">
           {players.map((p, i) => (
             <li key={p.uid} className={p.uid === user.uid ? 'me' : ''}>
@@ -271,7 +273,7 @@ export default function SessionView() {
       </section>
 
       <section className="card">
-        <h2>Activity</h2>
+        <h2><span className="card-icon pine">📣</span> Activity</h2>
         <ol className="scoreboard">
           {activity.length === 0 && <li style={{ border: 'none' }}>No taps yet — be the first.</li>}
           {activity.slice(0, 3).map((entry) => (
@@ -296,7 +298,7 @@ export default function SessionView() {
       </section>
 
       <section className="card">
-        <h2>Your cards</h2>
+        <h2><span className="card-icon coral">🎴</span> Your cards</h2>
         {!myDeck ? (
           <Loading label="Dealing your hand..." />
         ) : (
@@ -345,7 +347,7 @@ export default function SessionView() {
 
       {players.some((p) => p.uid !== user.uid && p.hand?.length) && (
         <section className="card">
-          <h2>Everyone else&rsquo;s cards</h2>
+          <h2><span className="card-icon mustard">👀</span> Everyone else&rsquo;s cards</h2>
           <p className="hint">
             Handy mid-game if someone forgets what their card means — tap a name to see it full-size.
           </p>
