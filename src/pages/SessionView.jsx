@@ -108,7 +108,7 @@ export default function SessionView() {
             <button onClick={() => navigate(`/print/pack/${session.packId}`)}>🖨️ Print cards</button>
           )}
         </div>
-        {pack && <RoadScene bare signText={`NOW ENTERING ${pack.name.toUpperCase()}`} subText="Pop. you & your crew" />}
+        {pack && <RoadScene signText={`NOW ENTERING ${pack.name.toUpperCase()}`} subText="Pop. you & your crew" />}
       </div>
 
       {pendingMultiplier > 1 && (

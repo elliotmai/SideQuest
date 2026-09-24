@@ -4,24 +4,39 @@ import { useAuth } from '../context/AuthContext'
 import RoadScene from '../components/RoadScene'
 
 export default function Home() {
-  const { user, profile, setUsername, signInWithGoogle, signOut } = useAuth()
+  const { user, profile, setUsername, signInWithGoogle, signOut, signInError } = useAuth()
   const navigate = useNavigate()
   const [joinCode, setJoinCode] = useState('')
   const [nameDraft, setNameDraft] = useState(profile?.username || '')
-  const [accountError, setAccountError] = useState('')
+  const [accountError, setAccountError] = useState(null)
   const [linking, setLinking] = useState(false)
 
+  const FRIENDLY_ERRORS = {
+    'auth/unauthorized-domain':
+      "This domain isn't authorized for Google sign-in yet — add it under Firebase Console → Authentication → Settings → Authorized domains.",
+    'auth/popup-closed-by-user': null, // user cancelled on purpose, not an error to show
+    'auth/network-request-failed': 'Network error — check your connection and try again.',
+  }
+
+  function describe(err) {
+    if (!err) return null
+    if (err.code in FRIENDLY_ERRORS) return FRIENDLY_ERRORS[err.code]
+    return `Sign-in failed (${err.code || 'unknown error'}) — ${err.message || 'try again.'}`
+  }
+
   async function handleSignIn() {
-    setAccountError('')
+    setAccountError(null)
     setLinking(true)
     try {
       await signInWithGoogle()
     } catch (err) {
-      setAccountError(err.code === 'auth/popup-closed-by-user' ? '' : 'Sign-in failed — try again.')
+      setAccountError(describe(err))
     } finally {
       setLinking(false)
     }
   }
+
+  const shownError = accountError ?? describe(signInError)
 
   return (
     <div className="page">
@@ -51,7 +66,7 @@ export default function Home() {
             <button onClick={handleSignIn} disabled={linking}>
               {linking ? 'Opening Google sign-in...' : 'Create account with Google'}
             </button>
-            {accountError && <p className="hint" style={{ color: 'var(--coral)' }}>{accountError}</p>}
+            {shownError && <p className="hint" style={{ color: 'var(--coral)' }}>{shownError}</p>}
           </>
         ) : (
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
