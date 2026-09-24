@@ -1,14 +1,5 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  setDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy,
-} from 'firebase/firestore'
-import { db } from '../firebase'
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { db, getDocFreshFirst } from '../firebase'
 import { DEFAULT_PACKS } from '../data/defaultPacks'
 import { DEFAULT_EXPANSIONS } from '../data/defaultExpansions'
 
@@ -23,12 +14,12 @@ export function subscribeExpansions(cb) {
 }
 
 export async function getPackOnce(id) {
-  const snap = await getDoc(doc(db, 'packs', id))
+  const snap = await getDocFreshFirst(doc(db, 'packs', id))
   return snap.exists() ? { id: snap.id, ...snap.data() } : null
 }
 
 export async function getExpansionOnce(id) {
-  const snap = await getDoc(doc(db, 'expansions', id))
+  const snap = await getDocFreshFirst(doc(db, 'expansions', id))
   return snap.exists() ? { id: snap.id, ...snap.data() } : null
 }
 
