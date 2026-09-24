@@ -1,13 +1,14 @@
 .topnav {
-  padding: calc(var(--safe-top) + 0.85rem) 1.1rem 0.85rem;
-  background: var(--coral);
+  padding: calc(var(--safe-top) + 0.75rem) 1.1rem 0.75rem;
+  background: rgba(232, 115, 74, 0.85);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
   display: flex;
   align-items: center;
   gap: 0.6rem;
   position: sticky;
   top: 0;
   z-index: 20;
-  box-shadow: 0 2px 0 rgba(58, 36, 24, 0.15);
 }
 
 .topnav-brand {
@@ -59,13 +60,13 @@
   text-decoration: none;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  box-shadow: 0 2px 0 var(--mustard-deep);
+  box-shadow: var(--shadow-glow-mustard);
 }
 
 .page {
   max-width: 640px;
   margin: 0 auto;
-  padding: 1.25rem 1.25rem calc(var(--safe-bottom) + 2.5rem);
+  padding: 1.25rem 1.25rem calc(var(--safe-bottom) + 5.5rem);
   display: flex;
   flex-direction: column;
   gap: var(--sp-5);
@@ -75,7 +76,7 @@
 @keyframes page-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
 }
 
@@ -89,34 +90,24 @@
 }
 
 .brand {
-  font-size: 2.6rem;
+  font-size: 2.9rem;
   line-height: 1;
   margin: 1.2rem 0 0;
-  color: var(--ink);
   position: relative;
   width: fit-content;
-  /* Halo so the title stays legible whether it lands over the cream page or
-     the road backdrop's dark asphalt behind it. */
-  text-shadow:
-    -2px 0 var(--paper-card),
-    2px 0 var(--paper-card),
-    0 -2px var(--paper-card),
-    0 2px var(--paper-card),
-    -2px -2px var(--paper-card),
-    2px -2px var(--paper-card),
-    -2px 2px var(--paper-card),
-    2px 2px var(--paper-card);
+  filter: drop-shadow(0 3px 10px rgba(58, 36, 24, 0.25));
 }
 
 .brand::before {
   content: '';
   position: absolute;
-  top: -18px;
-  left: -18px;
-  width: 70px;
-  height: 70px;
+  top: -20px;
+  left: -20px;
+  width: 78px;
+  height: 78px;
   border-radius: 50%;
-  background: var(--mustard);
+  background: var(--gradient-sunset);
+  box-shadow: var(--shadow-glow-coral);
   z-index: -1;
 }
 
@@ -129,13 +120,22 @@
 }
 
 .card {
-  background: var(--paper-card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  padding: 1.15rem 1.25rem;
+  padding: 1.25rem 1.3rem;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
-  box-shadow: var(--shadow-sticker);
+  box-shadow: var(--shadow-soft);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .card {
+    background: var(--glass-bg-strong);
+  }
 }
 
 .card h2 {
@@ -266,10 +266,13 @@
 }
 
 .quick-tile {
-  background: var(--paper-card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sticker);
-  padding: 1rem 0.8rem;
+  box-shadow: var(--shadow-soft);
+  padding: 1.1rem 0.8rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -324,23 +327,24 @@
 }
 
 .pack-tile {
-  background: var(--paper-card);
+  background: rgba(253, 248, 236, 0.55);
   border-radius: var(--radius-md);
-  padding: 0.9rem;
+  padding: 1rem;
   text-align: left;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  border: 1.5px dashed var(--dashes);
+  border: 1.5px solid rgba(201, 168, 118, 0.4);
   box-shadow: none;
   position: relative;
   transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
-    background var(--dur-fast) var(--ease-out);
+    background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
 button.pack-tile:hover:not(:disabled) {
   transform: translateY(-2px);
   border-color: var(--coral);
+  box-shadow: var(--shadow-soft);
 }
 
 button.pack-tile:active:not(:disabled) {
@@ -348,9 +352,9 @@ button.pack-tile:active:not(:disabled) {
 }
 
 .pack-tile.selected {
-  background: var(--coral);
-  border: 1.5px solid var(--coral);
-  box-shadow: 0 3px 0 var(--coral-deep);
+  background: var(--gradient-sunset);
+  border: 1.5px solid transparent;
+  box-shadow: var(--shadow-glow-coral);
 }
 
 .pack-tile.selected:hover {
@@ -421,10 +425,10 @@ button.pack-tile:active:not(:disabled) {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: var(--paper-card);
+  background: rgba(253, 248, 236, 0.55);
   border-radius: var(--radius-md);
-  padding: 0.75rem 0.9rem;
-  border: 1.5px dashed var(--dashes);
+  padding: 0.8rem 0.95rem;
+  border: 1.5px solid rgba(201, 168, 118, 0.4);
   cursor: pointer;
   transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
@@ -456,7 +460,7 @@ button.pack-tile:active:not(:disabled) {
   gap: 0.5rem;
   margin: -1.25rem -1.25rem 0;
   padding: 1.4rem 1.25rem 1.6rem;
-  background: linear-gradient(180deg, var(--coral) 0%, #f2a35c 100%);
+  background: var(--gradient-dusk);
   position: relative;
 }
 
@@ -479,6 +483,59 @@ button.pack-tile:active:not(:disabled) {
 
 .session-header button {
   align-self: flex-start;
+}
+
+.bottom-nav {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 0.9rem);
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  gap: 0.2rem;
+  background: rgba(253, 248, 236, 0.82);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  padding: 0.4rem;
+  box-shadow: var(--shadow-soft-lg);
+  width: calc(100% - 2rem);
+  max-width: 420px;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .bottom-nav {
+    background: var(--glass-bg-strong);
+  }
+}
+
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  text-decoration: none;
+  color: var(--ink-soft);
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 0.4rem 0.2rem;
+  border-radius: var(--radius-pill);
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.bottom-nav-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.bottom-nav-item.active {
+  background: var(--gradient-sunset);
+  color: var(--paper-card);
+  box-shadow: var(--shadow-glow-coral);
 }
 
 /* The road/sky itself lives in RoadBackdrop, fixed behind the whole app. */
@@ -847,10 +904,10 @@ button.play-card:disabled {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--paper-card);
-  padding: 0.6rem 0.9rem;
-  border-radius: 10px;
-  border: 1.5px dashed var(--dashes);
+  background: rgba(253, 248, 236, 0.55);
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1.5px solid rgba(201, 168, 118, 0.4);
 }
 
 .print-table {
@@ -943,9 +1000,9 @@ button.play-card:disabled {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  background: var(--paper-card);
-  border: 1.5px dashed var(--dashes);
-  border-radius: 10px;
+  background: rgba(253, 248, 236, 0.55);
+  border: 1.5px solid rgba(201, 168, 118, 0.4);
+  border-radius: var(--radius-md);
   padding: 0.6rem 0.8rem;
 }
 
@@ -976,9 +1033,9 @@ button.play-card:disabled {
   display: flex;
   gap: 0.6rem;
   align-items: flex-start;
-  background: var(--paper-card);
-  border: 1.5px dashed var(--dashes);
-  border-radius: 10px;
+  background: rgba(253, 248, 236, 0.55);
+  border: 1.5px solid rgba(201, 168, 118, 0.4);
+  border-radius: var(--radius-md);
   padding: 0.7rem 0.8rem;
 }
 

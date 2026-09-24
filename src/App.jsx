@@ -48,6 +48,8 @@ function Shell({ children }) {
       </div>
     )
   }
+  const isPrint = location.pathname.startsWith('/print')
+
   return (
     <>
       <nav className="topnav">
@@ -66,6 +68,35 @@ function Shell({ children }) {
         )}
       </nav>
       {children}
+      {!isPrint && (
+        <nav className="bottom-nav no-print">
+          <Link to="/" className={`bottom-nav-item ${location.pathname === '/' ? 'active' : ''}`}>
+            <span className="bottom-nav-icon">🏠</span>
+            <span>Home</span>
+          </Link>
+          <Link
+            to="/create"
+            className={`bottom-nav-item ${location.pathname.startsWith('/create') ? 'active' : ''}`}
+          >
+            <span className="bottom-nav-icon">🎲</span>
+            <span>Play</span>
+          </Link>
+          <Link
+            to="/history"
+            className={`bottom-nav-item ${location.pathname.startsWith('/history') ? 'active' : ''}`}
+          >
+            <span className="bottom-nav-icon">🗒️</span>
+            <span>History</span>
+          </Link>
+          <Link
+            to="/friends"
+            className={`bottom-nav-item ${location.pathname.startsWith('/friends') ? 'active' : ''}`}
+          >
+            <span className="bottom-nav-icon">🧑‍🤝‍🧑</span>
+            <span>Friends</span>
+          </Link>
+        </nav>
+      )}
     </>
   )
 }
