@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { UserPlus, UsersRound } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import {
   findUserByUsername,
@@ -10,6 +11,7 @@ import {
   subscribeMyGroups,
 } from '../lib/friends'
 import { useNavigate } from 'react-router-dom'
+import CardIcon from '../components/CardIcon'
 
 function FriendCheckboxList({ friends, selected, onToggle }) {
   if (friends.length === 0) {
@@ -136,7 +138,7 @@ export default function Friends() {
       <h1>Friends &amp; groups</h1>
 
       <section className="card">
-        <h2><span className="card-icon coral">🤝</span> Add a friend</h2>
+        <h2><CardIcon icon={UserPlus} tone="coral" /> Add a friend</h2>
         <div className="row">
           <input
             value={searchName}
@@ -152,7 +154,7 @@ export default function Friends() {
       </section>
 
       <section className="card">
-        <h2><span className="card-icon mustard">👥</span> New group</h2>
+        <h2><CardIcon icon={UsersRound} tone="mustard" /> New group</h2>
         <div className="row">
           <input
             value={newGroupName}

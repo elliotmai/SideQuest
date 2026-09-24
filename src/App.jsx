@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
+import { Home as HomeIcon, Dices, NotebookText, Users } from 'lucide-react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Home from './pages/Home'
 import CreateSession from './pages/CreateSession'
@@ -71,28 +72,28 @@ function Shell({ children }) {
       {!isPrint && (
         <nav className="bottom-nav no-print">
           <Link to="/" className={`bottom-nav-item ${location.pathname === '/' ? 'active' : ''}`}>
-            <span className="bottom-nav-icon">🏠</span>
+            <HomeIcon className="bottom-nav-icon" size={19} strokeWidth={2.25} />
             <span>Home</span>
           </Link>
           <Link
             to="/create"
             className={`bottom-nav-item ${location.pathname.startsWith('/create') ? 'active' : ''}`}
           >
-            <span className="bottom-nav-icon">🎲</span>
+            <Dices className="bottom-nav-icon" size={19} strokeWidth={2.25} />
             <span>Play</span>
           </Link>
           <Link
             to="/history"
             className={`bottom-nav-item ${location.pathname.startsWith('/history') ? 'active' : ''}`}
           >
-            <span className="bottom-nav-icon">🗒️</span>
+            <NotebookText className="bottom-nav-icon" size={19} strokeWidth={2.25} />
             <span>History</span>
           </Link>
           <Link
             to="/friends"
             className={`bottom-nav-item ${location.pathname.startsWith('/friends') ? 'active' : ''}`}
           >
-            <span className="bottom-nav-icon">🧑‍🤝‍🧑</span>
+            <Users className="bottom-nav-icon" size={19} strokeWidth={2.25} />
             <span>Friends</span>
           </Link>
         </nav>

@@ -160,14 +160,17 @@
 
 .card-icon.coral {
   background: var(--coral-wash);
+  color: var(--coral-deep);
 }
 
 .card-icon.mustard {
   background: #fdf1cf;
+  color: var(--mustard-deep);
 }
 
 .card-icon.pine {
   background: var(--pine-wash);
+  color: var(--pine);
 }
 
 .avatar {
@@ -318,6 +321,17 @@
   color: var(--ink-soft);
   font-size: 0.9rem;
   margin: 0;
+}
+
+.print-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: none;
+}
+
+.print-link:hover {
+  text-decoration: underline;
 }
 
 .pack-grid {
@@ -660,6 +674,17 @@ button.pack-tile:active:not(:disabled) {
 
 .rank-badge.gold {
   background: var(--mustard);
+  color: #8a6a10;
+}
+
+.rank-badge.silver {
+  background: #e3e6ea;
+  color: #6b7280;
+}
+
+.rank-badge.bronze {
+  background: #e8c9a8;
+  color: #8a5a2b;
 }
 
 .player-name {

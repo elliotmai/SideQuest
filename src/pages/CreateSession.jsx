@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { Backpack, PlusCircle, SlidersHorizontal, Printer } from 'lucide-react'
 import { MODIFIERS } from '../data/modes'
 import { useAuth } from '../context/AuthContext'
 import { createSession } from '../lib/session'
 import { subscribePacks, subscribeExpansions } from '../lib/decks'
+import CardIcon from '../components/CardIcon'
 
 function toggleId(list, id) {
   return list.includes(id) ? list.filter((x) => x !== id) : [...list, id]
@@ -62,7 +64,7 @@ export default function CreateSession() {
       )}
 
       <section className="card">
-        <h2><span className="card-icon coral">🎒</span> Pick a pack</h2>
+        <h2><CardIcon icon={Backpack} tone="coral" /> Pick a pack</h2>
         <div className="pack-grid">
           {packs.map((pack) => (
             <button
@@ -77,15 +79,15 @@ export default function CreateSession() {
           ))}
         </div>
         {packId && (
-          <Link to={`/print/pack/${packId}`} className="hint">
-            🖨️ No phone? Print this pack as a real 52-card deck →
+          <Link to={`/print/pack/${packId}`} className="hint print-link">
+            <Printer size={14} strokeWidth={2.25} /> No phone? Print this pack as a real 52-card deck
           </Link>
         )}
       </section>
 
       {expansions.length > 0 && (
         <section className="card">
-          <h2><span className="card-icon mustard">➕</span> Expansions</h2>
+          <h2><CardIcon icon={PlusCircle} tone="mustard" /> Expansions</h2>
           <p className="hint" style={{ marginTop: '-0.4rem' }}>Optional — stack as many as you like.</p>
           <div className="mode-list">
             {expansions.map((exp) => (
@@ -103,8 +105,8 @@ export default function CreateSession() {
                     <div className="mode-desc">{exp.description}</div>
                   </div>
                 </label>
-                <Link to={`/print/expansion/${exp.id}`} className="hint" style={{ display: 'inline-block', marginTop: '0.25rem' }}>
-                  🖨️ Print as cards →
+                <Link to={`/print/expansion/${exp.id}`} className="hint print-link" style={{ marginTop: '0.25rem' }}>
+                  <Printer size={14} strokeWidth={2.25} /> Print as cards
                 </Link>
               </div>
             ))}
@@ -113,7 +115,7 @@ export default function CreateSession() {
       )}
 
       <section className="card">
-        <h2><span className="card-icon pine">⚙️</span> Modifiers</h2>
+        <h2><CardIcon icon={SlidersHorizontal} tone="pine" /> Modifiers</h2>
         <p className="hint" style={{ marginTop: '-0.4rem' }}>Optional — stack as many as you like.</p>
         <div className="mode-list">
           {MODIFIERS.map((mod) => (
