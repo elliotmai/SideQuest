@@ -16,7 +16,7 @@ function Shell({ children }) {
       </div>
     )
   }
-  if (authError || !user) {
+  if (!user) {
     return (
       <div className="page">
         <h1 className="brand">Side Quest</h1>
