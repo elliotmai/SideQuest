@@ -11,6 +11,7 @@ import Admin from './pages/Admin'
 import Print from './pages/Print'
 import RoadBackdrop from './components/RoadBackdrop'
 import Loading from './components/Loading'
+import Footer from './components/Footer'
 import './App.css'
 
 function Shell({ children }) {
@@ -69,6 +70,7 @@ function Shell({ children }) {
         )}
       </nav>
       {children}
+      {!isPrint && <Footer />}
       {!isPrint && (
         <nav className="bottom-nav no-print">
           <Link to="/" className={`bottom-nav-item ${location.pathname === '/' ? 'active' : ''}`}>
