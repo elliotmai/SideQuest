@@ -23,14 +23,14 @@ function generateCode(length = 6) {
   return code
 }
 
-export async function createSession({ packId, modeId, pointsPerDrink, hostUid, hostName }) {
+export async function createSession({ packId, expansionIds = [], modifierIds = [], hostUid, hostName }) {
   const code = generateCode()
   const ref = doc(db, 'sessions', code)
   await setDoc(ref, {
     code,
     packId,
-    modeId,
-    pointsPerDrink,
+    expansionIds,
+    modifierIds,
     hostUid,
     active: true,
     createdAt: serverTimestamp(),
@@ -54,7 +54,7 @@ export async function joinSession(code, { uid, name }) {
   const ref = doc(db, 'sessions', code.toUpperCase(), 'players', uid)
   await setDoc(
     ref,
-    { uid, name, score: 0, drinks: 0, joinedAt: serverTimestamp() },
+    { uid, name, score: 0, drinkUnits: 0, pendingMultiplier: 1, joinedAt: serverTimestamp() },
     { merge: true },
   )
 }
@@ -73,19 +73,38 @@ export function subscribeEvents(code, cb) {
   })
 }
 
-export async function logEvent(code, { uid, name, eventId, eventLabel, points, drinks }) {
+// `drink`/`points` are already fully resolved (mode modifiers + any consumed
+// multiplier applied) by the caller — see data/modes.js#resolveDrink.
+export async function logEvent(code, { uid, name, eventId, eventLabel, drink, points }) {
   const upperCode = code.toUpperCase()
   await addDoc(collection(db, 'sessions', upperCode, 'events'), {
     uid,
     name,
     eventId,
     eventLabel,
+    drink,
     points,
-    drinks,
     timestamp: serverTimestamp(),
   })
   await updateDoc(doc(db, 'sessions', upperCode, 'players', uid), {
     score: increment(points),
-    drinks: increment(drinks),
+    drinkUnits: increment(drink.amount),
+    pendingMultiplier: 1,
+  })
+}
+
+// Arms a multiplier card for the tapping player's *next* scored event only.
+export async function armMultiplier(code, { uid, name, eventId, eventLabel, factor }) {
+  const upperCode = code.toUpperCase()
+  await addDoc(collection(db, 'sessions', upperCode, 'events'), {
+    uid,
+    name,
+    eventId,
+    eventLabel,
+    multiplierArmed: factor,
+    timestamp: serverTimestamp(),
+  })
+  await updateDoc(doc(db, 'sessions', upperCode, 'players', uid), {
+    pendingMultiplier: factor,
   })
 }

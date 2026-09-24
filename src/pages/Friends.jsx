@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { findUserByUsername, addFriend, createGroup, subscribeMyGroups } from '../lib/friends'
-import { createSession } from '../lib/session'
-import { PACKS } from '../data/packs'
-import { MODES, DEFAULT_POINTS_PER_DRINK } from '../data/modes'
 import { useNavigate } from 'react-router-dom'
 
 export default function Friends() {
@@ -41,15 +38,10 @@ export default function Friends() {
     setNewGroupName('')
   }
 
-  async function quickStart() {
-    const code = await createSession({
-      packId: PACKS[0].id,
-      modeId: MODES[0].id,
-      pointsPerDrink: DEFAULT_POINTS_PER_DRINK,
-      hostUid: user.uid,
-      hostName: profile?.username || 'Host',
-    })
-    navigate(`/session/${code}`)
+  function quickStart() {
+    // Group members already have the app; "quick start" just skips re-typing who's
+    // playing and jumps straight to picking a pack for this crew.
+    navigate('/create')
   }
 
   return (

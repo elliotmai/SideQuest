@@ -5,6 +5,7 @@ import CreateSession from './pages/CreateSession'
 import JoinSession from './pages/JoinSession'
 import SessionView from './pages/SessionView'
 import Friends from './pages/Friends'
+import Admin from './pages/Admin'
 import './App.css'
 
 function Shell({ children }) {
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="/join/:code" element={<JoinSession />} />
             <Route path="/session/:code" element={<SessionView />} />
             <Route path="/friends" element={<Friends />} />
+            <Route path="/admin" element={<Admin />} />
           </Routes>
         </Shell>
       </BrowserRouter>

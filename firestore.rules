@@ -2,11 +2,35 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Packs/expansions ("decks") are readable by anyone signed in; only an admin
+    // account (isAdmin set manually on their user doc) can create/edit/delete them.
+    match /packs/{packId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /expansions/{expansionId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
     // Any signed-in user (anonymous auth counts) can read/write their own profile,
     // and read others' (needed for username lookup / friend search).
     match /users/{uid} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == uid;
+      // A user can freely write their own profile, but can't grant themselves
+      // isAdmin — that field can only carry over unchanged (or be touched by an
+      // existing admin), so it must be set by hand in the Firebase console.
+      allow write: if request.auth != null && request.auth.uid == uid &&
+        (!('isAdmin' in request.resource.data) ||
+          (resource != null && request.resource.data.isAdmin == resource.data.isAdmin) ||
+          isAdmin());
     }
 
     // Friend groups: readable/writable by members only.
