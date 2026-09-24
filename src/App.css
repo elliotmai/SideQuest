@@ -317,3 +317,49 @@
   border-radius: 10px;
   border: 1.5px dashed var(--dashes);
 }
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--paper-card);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.print-table th,
+.print-table td {
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px dashed var(--dashes);
+  font-size: 0.85rem;
+}
+
+.print-table th {
+  font-family: 'Alfa Slab One', serif;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+@media print {
+  .topnav,
+  .no-print {
+    display: none !important;
+  }
+  .page {
+    max-width: none;
+    padding: 0;
+  }
+  body {
+    background: #fff;
+  }
+  .print-table {
+    box-shadow: none;
+  }
+  .print-table th,
+  .print-table td {
+    border-bottom: 1px solid #ccc;
+    color: #000;
+  }
+}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getPackOnce, getExpansionOnce } from '../lib/decks'
 import { resolveDrink } from '../data/modes'
@@ -15,6 +15,7 @@ import {
 
 export default function SessionView() {
   const { code } = useParams()
+  const navigate = useNavigate()
   const { user, profile } = useAuth()
   const [session, setSession] = useState(undefined)
   const [pack, setPack] = useState(null)
@@ -95,7 +96,12 @@ export default function SessionView() {
           Code: <strong>{code}</strong>
           {expansions.length > 0 && ` · ${expansions.map((e) => e.name).join(', ')}`}
         </p>
-        <button onClick={() => navigator.clipboard?.writeText(shareUrl)}>Copy invite link</button>
+        <div className="row">
+          <button onClick={() => navigator.clipboard?.writeText(shareUrl)}>Copy invite link</button>
+          {session.packId && (
+            <button onClick={() => navigate(`/print/pack/${session.packId}`)}>🖨️ Print cards</button>
+          )}
+        </div>
       </div>
 
       {pendingMultiplier > 1 && (

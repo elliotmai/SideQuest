@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { MODIFIERS } from '../data/modes'
 import { useAuth } from '../context/AuthContext'
 import { createSession } from '../lib/session'
@@ -76,6 +76,11 @@ export default function CreateSession() {
             </button>
           ))}
         </div>
+        {packId && (
+          <Link to={`/print/pack/${packId}`} className="hint">
+            🖨️ No phone? Print this pack as a real 52-card deck →
+          </Link>
+        )}
       </section>
 
       {expansions.length > 0 && (
@@ -83,22 +88,24 @@ export default function CreateSession() {
           <h2>Expansions (optional, stack any number)</h2>
           <div className="mode-list">
             {expansions.map((exp) => (
-              <label
-                key={exp.id}
-                className={`mode-row ${expansionIds.includes(exp.id) ? 'selected' : ''}`}
-              >
-                <input
-                  type="checkbox"
-                  checked={expansionIds.includes(exp.id)}
-                  onChange={() => setExpansionIds((ids) => toggleId(ids, exp.id))}
-                />
-                <div>
-                  <div className="mode-name">
-                    {exp.emoji} {exp.name}
+              <div key={exp.id}>
+                <label className={`mode-row ${expansionIds.includes(exp.id) ? 'selected' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={expansionIds.includes(exp.id)}
+                    onChange={() => setExpansionIds((ids) => toggleId(ids, exp.id))}
+                  />
+                  <div>
+                    <div className="mode-name">
+                      {exp.emoji} {exp.name}
+                    </div>
+                    <div className="mode-desc">{exp.description}</div>
                   </div>
-                  <div className="mode-desc">{exp.description}</div>
-                </div>
-              </label>
+                </label>
+                <Link to={`/print/expansion/${exp.id}`} className="hint" style={{ display: 'inline-block', marginTop: '0.25rem' }}>
+                  🖨️ Print as cards →
+                </Link>
+              </div>
             ))}
           </div>
         </section>

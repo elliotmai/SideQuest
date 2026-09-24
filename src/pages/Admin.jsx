@@ -10,6 +10,7 @@ import {
   seedDefaults,
   slugify,
 } from '../lib/decks'
+import { STANDARD_DECK, JOKERS } from '../data/cards'
 
 const emptyEvent = () => ({
   id: `evt-${Math.random().toString(36).slice(2, 8)}`,
@@ -17,6 +18,7 @@ const emptyEvent = () => ({
   label: '',
   drink: { type: 'count', amount: 1 },
   factor: 2,
+  cardCount: 1,
 })
 
 function DeckEditor({ deck, onSave, onCancel }) {
@@ -40,9 +42,21 @@ function DeckEditor({ deck, onSave, onCancel }) {
     })
   }
 
+  const scoreCardTotal = events
+    .filter((e) => e.kind === 'score')
+    .reduce((sum, e) => sum + (e.cardCount || 0), 0)
+  const jokerTotal = events
+    .filter((e) => e.kind === 'multiplier')
+    .reduce((sum, e) => sum + (e.cardCount || 0), 0)
+  const deckIsClean = scoreCardTotal === STANDARD_DECK.length && jokerTotal === JOKERS.length
+
   return (
     <div className="card">
       <h2>{deck ? `Edit ${deck.name}` : 'New deck'}</h2>
+      <p className="hint" style={{ color: deckIsClean ? undefined : 'var(--coral)' }}>
+        Card deck total: {scoreCardTotal}/{STANDARD_DECK.length} standard cards, {jokerTotal}/
+        {JOKERS.length} jokers{deckIsClean ? ' — matches a real deck ✓' : ''}
+      </p>
       <div className="row">
         <input value={emoji} onChange={(e) => setEmoji(e.target.value)} style={{ width: 60 }} />
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
@@ -109,6 +123,19 @@ function DeckEditor({ deck, onSave, onCancel }) {
               </select>
             </div>
           )}
+          <div className="row">
+            <label className="field-label" style={{ alignSelf: 'center' }}>
+              {event.kind === 'multiplier' ? 'Jokers' : 'Cards'} for this event
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={event.kind === 'multiplier' ? 2 : 52}
+              value={event.cardCount ?? 0}
+              onChange={(e) => updateEvent(i, { cardCount: Number(e.target.value) })}
+              style={{ width: 70 }}
+            />
+          </div>
           <button onClick={() => setEvents((evts) => evts.filter((_, idx) => idx !== i))}>Remove event</button>
         </div>
       ))}
