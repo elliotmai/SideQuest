@@ -13,6 +13,13 @@
   text-decoration: none;
 }
 
+.topnav-home-link {
+  color: var(--paper-card);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
 .topnav-admin-link {
   margin-left: auto;
   color: var(--ink);
