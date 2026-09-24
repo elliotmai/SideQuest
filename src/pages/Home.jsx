@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { KeyRound, Dices, Users, NotebookText } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import RoadScene from '../components/RoadScene'
 import UsernameStatus from '../components/UsernameStatus'
 import Avatar from '../components/Avatar'
+import CardIcon from '../components/CardIcon'
 import { useUsernameAvailability } from '../lib/useUsernameAvailability'
 
 export default function Home() {
@@ -108,7 +110,8 @@ export default function Home() {
                 browser.
               </p>
               <button onClick={handleSignIn} disabled={linking}>
-                {linking ? 'Opening Google sign-in...' : '🔐 Create account with Google'}
+                <KeyRound size={16} strokeWidth={2.25} style={{ marginRight: '0.35rem', verticalAlign: '-3px' }} />
+                {linking ? 'Opening Google sign-in...' : 'Create account with Google'}
               </button>
               {shownError && (
                 <p className="hint" style={{ color: 'var(--coral-deep)' }}>
@@ -126,7 +129,7 @@ export default function Home() {
 
       <section className="card hero-card">
         <h2>
-          <span className="card-icon coral">🎲</span> Start a new game
+          <CardIcon icon={Dices} tone="coral" /> Start a new game
         </h2>
         <p className="hint">Pick a pack, set your house rules, and get a link to send your crew.</p>
         <button className="primary" onClick={() => navigate('/create')}>
@@ -153,11 +156,11 @@ export default function Home() {
 
       <div className="tile-row">
         <button className="quick-tile" onClick={() => navigate('/friends')}>
-          <span className="card-icon mustard">🧑‍🤝‍🧑</span>
+          <CardIcon icon={Users} tone="mustard" />
           <span>Friends &amp; groups</span>
         </button>
         <button className="quick-tile" onClick={() => navigate('/history')}>
-          <span className="card-icon pine">🗒️</span>
+          <CardIcon icon={NotebookText} tone="pine" />
           <span>Game history</span>
         </button>
       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Printer, TrafficCone, Trophy, Medal, Megaphone, Layers, Eye, ChevronRight } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getPackOnce, getExpansionOnce } from '../lib/decks'
 import { resolveDrink } from '../data/modes'
@@ -7,6 +8,7 @@ import { drinkLabel } from '../data/drinks'
 import { buildDeckInstances, dealHand, playCard } from '../lib/cardGame'
 import RoadScene from '../components/RoadScene'
 import Loading from '../components/Loading'
+import CardIcon from '../components/CardIcon'
 import {
   subscribeSession,
   subscribePlayers,
@@ -218,7 +220,10 @@ export default function SessionView() {
         <div className="row">
           <button onClick={() => navigator.clipboard?.writeText(shareUrl)}>Copy invite link</button>
           {session.packId && (
-            <button onClick={() => navigate(`/print/pack/${session.packId}`)}>🖨️ Print cards</button>
+            <button onClick={() => navigate(`/print/pack/${session.packId}`)}>
+              <Printer size={16} strokeWidth={2.25} style={{ marginRight: '0.35rem', verticalAlign: '-3px' }} />
+              Print cards
+            </button>
           )}
         </div>
         {pack && <RoadScene signText={`NOW ENTERING ${pack.name.toUpperCase()}`} subText="Pop. you & your crew" />}
@@ -231,7 +236,7 @@ export default function SessionView() {
       <section className="card">
         <div className="row between">
           <h2>
-            <span className="card-icon coral">🚦</span> Game
+            <CardIcon icon={TrafficCone} tone="coral" /> Game
           </h2>
           {session.active === false ? (
             <button onClick={handleResumeGame}>Resume game</button>
@@ -258,22 +263,25 @@ export default function SessionView() {
       )}
 
       <section className="card">
-        <h2><span className="card-icon mustard">🏆</span> Scoreboard</h2>
+        <h2><CardIcon icon={Trophy} tone="mustard" /> Scoreboard</h2>
         <ol className="scoreboard">
-          {players.map((p, i) => (
-            <li key={p.uid} className={p.uid === user.uid ? 'me' : ''}>
-              <span className={`rank-badge ${i === 0 ? 'gold' : ''}`}>
-                {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
-              </span>
-              <span className="player-name">{p.name}</span>
-              <span className="player-score">{p.score} pts</span>
-            </li>
-          ))}
+          {players.map((p, i) => {
+            const medalTone = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''
+            return (
+              <li key={p.uid} className={p.uid === user.uid ? 'me' : ''}>
+                <span className={`rank-badge ${medalTone}`}>
+                  {medalTone ? <Medal size={15} strokeWidth={2.25} /> : i + 1}
+                </span>
+                <span className="player-name">{p.name}</span>
+                <span className="player-score">{p.score} pts</span>
+              </li>
+            )
+          })}
         </ol>
       </section>
 
       <section className="card">
-        <h2><span className="card-icon pine">📣</span> Activity</h2>
+        <h2><CardIcon icon={Megaphone} tone="pine" /> Activity</h2>
         <ol className="scoreboard">
           {activity.length === 0 && <li style={{ border: 'none' }}>No taps yet — be the first.</li>}
           {activity.slice(0, 3).map((entry) => (
@@ -298,7 +306,7 @@ export default function SessionView() {
       </section>
 
       <section className="card">
-        <h2><span className="card-icon coral">🎴</span> Your cards</h2>
+        <h2><CardIcon icon={Layers} tone="coral" /> Your cards</h2>
         {!myDeck ? (
           <Loading label="Dealing your hand..." />
         ) : (
@@ -347,7 +355,7 @@ export default function SessionView() {
 
       {players.some((p) => p.uid !== user.uid && p.hand?.length) && (
         <section className="card">
-          <h2><span className="card-icon mustard">👀</span> Everyone else&rsquo;s cards</h2>
+          <h2><CardIcon icon={Eye} tone="mustard" /> Everyone else&rsquo;s cards</h2>
           <p className="hint">
             Handy mid-game if someone forgets what their card means — tap a name to see it full-size.
           </p>
@@ -361,7 +369,7 @@ export default function SessionView() {
                   onClick={() => setExpandedUid((id) => (id === p.uid ? null : p.uid))}
                 >
                   {p.name}
-                  <span className="chevron">▸</span>
+                  <ChevronRight className="chevron" size={14} strokeWidth={2.5} />
                 </button>
                 <HandRow hand={p.hand} events={events} mini={expandedUid !== p.uid} />
               </div>
