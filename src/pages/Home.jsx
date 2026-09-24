@@ -3,10 +3,24 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Home() {
-  const { profile, setUsername } = useAuth()
+  const { user, profile, setUsername, signInWithGoogle, signOut } = useAuth()
   const navigate = useNavigate()
   const [joinCode, setJoinCode] = useState('')
   const [nameDraft, setNameDraft] = useState(profile?.username || '')
+  const [accountError, setAccountError] = useState('')
+  const [linking, setLinking] = useState(false)
+
+  async function handleSignIn() {
+    setAccountError('')
+    setLinking(true)
+    try {
+      await signInWithGoogle()
+    } catch (err) {
+      setAccountError(err.code === 'auth/popup-closed-by-user' ? '' : 'Sign-in failed — try again.')
+    } finally {
+      setLinking(false)
+    }
+  }
 
   return (
     <div className="page">
@@ -25,6 +39,24 @@ export default function Home() {
             Save
           </button>
         </div>
+
+        {user?.isAnonymous ? (
+          <>
+            <p className="hint">
+              You&rsquo;re playing as a guest — this device only. Create an account to keep your
+              friends and groups if you switch devices or clear your browser.
+            </p>
+            <button onClick={handleSignIn} disabled={linking}>
+              {linking ? 'Opening Google sign-in...' : 'Create account with Google'}
+            </button>
+            {accountError && <p className="hint" style={{ color: 'var(--coral)' }}>{accountError}</p>}
+          </>
+        ) : (
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <p className="hint">Signed in as {user?.displayName || user?.email}</p>
+            <button onClick={signOut}>Sign out</button>
+          </div>
+        )}
       </section>
 
       <section className="card">
