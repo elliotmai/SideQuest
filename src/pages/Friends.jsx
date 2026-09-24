@@ -97,18 +97,23 @@ export default function Friends() {
 
   async function handleAddFriend() {
     setStatus('Searching...')
-    const found = await findUserByUsername(searchName.trim())
-    if (!found) {
-      setStatus('No user found with that username.')
-      return
+    try {
+      const found = await findUserByUsername(searchName.trim())
+      if (!found) {
+        setStatus('No user found with that username.')
+        return
+      }
+      if (found.uid === user.uid) {
+        setStatus("That's you!")
+        return
+      }
+      await addFriend(user.uid, found.uid)
+      setStatus(`Added ${found.username} as a friend.`)
+      setSearchName('')
+    } catch (err) {
+      console.error('Failed to add friend', err)
+      setStatus('Something went wrong — try again.')
     }
-    if (found.uid === user.uid) {
-      setStatus("That's you!")
-      return
-    }
-    await addFriend(user.uid, found.uid)
-    setStatus(`Added ${found.username} as a friend.`)
-    setSearchName('')
   }
 
   function toggleNewGroupMember(uid) {
