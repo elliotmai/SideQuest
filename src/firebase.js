@@ -1,5 +1,11 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider } from 'firebase/auth'
+import {
+  initializeAuth,
+  browserPopupRedirectResolver,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  GoogleAuthProvider,
+} from 'firebase/auth'
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -19,5 +25,12 @@ export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 })
 
-export const auth = getAuth(app)
+// getAuth(app) can end up missing its popup/redirect resolver under some bundler
+// tree-shaking setups (surfaces as "Cannot read properties of undefined
+// (reading '_popupRedirectResolver')" the moment you call signInWithPopup/
+// signInWithRedirect). Wiring it explicitly via initializeAuth avoids that.
+export const auth = initializeAuth(app, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+  popupRedirectResolver: browserPopupRedirectResolver,
+})
 export const googleProvider = new GoogleAuthProvider()
