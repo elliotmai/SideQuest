@@ -71,8 +71,11 @@ export default function SessionView() {
       <section className="card">
         <h2>Scoreboard</h2>
         <ol className="scoreboard">
-          {players.map((p) => (
+          {players.map((p, i) => (
             <li key={p.uid} className={p.uid === user.uid ? 'me' : ''}>
+              <span className={`rank-badge ${i === 0 ? 'gold' : ''}`}>
+                {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+              </span>
               <span className="player-name">{p.name}</span>
               <span className="player-score">
                 {p.score} pts{mode?.alcohol ? ` · ${(p.drinks || 0).toFixed(1)} drinks` : ''}

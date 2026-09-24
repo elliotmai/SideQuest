@@ -8,7 +8,7 @@ import Friends from './pages/Friends'
 import './App.css'
 
 function Shell({ children }) {
-  const { loading, authError, user } = useAuth()
+  const { loading, user } = useAuth()
   if (loading) {
     return (
       <div className="page">
