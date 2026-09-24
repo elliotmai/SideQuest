@@ -311,6 +311,23 @@
   margin: 0;
 }
 
+.app-footer {
+  text-align: center;
+  padding: 0 1.25rem calc(var(--safe-bottom) + 6.5rem);
+}
+
+.app-footer a {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  text-decoration: none;
+}
+
+.app-footer a:hover {
+  color: var(--ink-soft);
+  text-decoration: underline;
+}
+
 .print-link {
   display: inline-flex;
   align-items: center;
