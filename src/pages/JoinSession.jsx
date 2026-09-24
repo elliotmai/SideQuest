@@ -5,6 +5,7 @@ import { getSession, joinSession } from '../lib/session'
 import { getPackOnce } from '../lib/decks'
 import { MODIFIERS } from '../data/modes'
 import UsernameStatus from '../components/UsernameStatus'
+import Loading from '../components/Loading'
 import { useUsernameAvailability } from '../lib/useUsernameAvailability'
 
 export default function JoinSession() {
@@ -44,7 +45,12 @@ export default function JoinSession() {
     }
   }
 
-  if (session === undefined) return <div className="page">Loading...</div>
+  if (session === undefined)
+    return (
+      <div className="page">
+        <Loading label="Finding game..." />
+      </div>
+    )
   if (session === null) {
     return (
       <div className="page">
