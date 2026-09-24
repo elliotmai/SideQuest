@@ -34,6 +34,7 @@ h2 {
 }
 
 input,
+textarea,
 button {
   font: inherit;
 }
@@ -73,7 +74,8 @@ button.primary {
   box-shadow: 0 4px 0 var(--coral-deep);
 }
 
-input {
+input,
+textarea {
   background: var(--paper-card);
   border: 1.5px dashed var(--dashes);
   color: var(--ink);
@@ -82,7 +84,13 @@ input {
   flex: 1;
 }
 
+textarea {
+  width: 100%;
+  resize: vertical;
+}
+
 input:focus,
+textarea:focus,
 button:focus-visible {
   outline: 3px solid var(--mustard);
   outline-offset: 1px;
