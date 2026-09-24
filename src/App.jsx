@@ -8,11 +8,24 @@ import Friends from './pages/Friends'
 import './App.css'
 
 function Shell({ children }) {
-  const { loading } = useAuth()
+  const { loading, authError, user } = useAuth()
   if (loading) {
     return (
       <div className="page">
         <p>Loading Side Quest...</p>
+      </div>
+    )
+  }
+  if (authError || !user) {
+    return (
+      <div className="page">
+        <h1 className="brand">Side Quest</h1>
+        <p>
+          Couldn&rsquo;t connect. Check your internet connection and reload the page.
+        </p>
+        <button className="primary" onClick={() => window.location.reload()}>
+          Retry
+        </button>
       </div>
     )
   }
