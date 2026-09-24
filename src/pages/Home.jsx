@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import RoadScene from '../components/RoadScene'
 
 export default function Home() {
   const { user, profile, setUsername, signInWithGoogle, signOut } = useAuth()
@@ -24,6 +25,7 @@ export default function Home() {
 
   return (
     <div className="page">
+      <RoadScene signText="ROUTE 66" subText="Side Quest — Next Exit" />
       <h1 className="brand">Side Quest</h1>
       <p className="tagline">Turn any outing into a game.</p>
 

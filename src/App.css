@@ -181,12 +181,35 @@
   flex-direction: column;
   gap: 0.5rem;
   margin: -1.25rem -1.25rem 0;
-  padding: 1.4rem 1.25rem 1.6rem;
+  padding: 1.4rem 1.25rem 0;
   background: linear-gradient(180deg, var(--coral) 0%, #f2a35c 100%);
   position: relative;
 }
 
-.session-header::after {
+.session-header h1,
+.session-header .hint {
+  color: var(--paper-card);
+}
+
+.session-header button {
+  align-self: flex-start;
+}
+
+.road-scene {
+  position: relative;
+  height: 90px;
+  margin: -1.25rem -1.25rem 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--coral) 0%, #f2a35c 70%, var(--mustard) 100%);
+}
+
+.road-scene.bare {
+  height: 74px;
+  margin: 1rem -1.25rem 0;
+  background: transparent;
+}
+
+.road-scene.bare::after {
   content: '';
   position: absolute;
   left: 0;
@@ -198,13 +221,45 @@
   background-repeat: repeat-x;
 }
 
-.session-header h1,
-.session-header .hint {
-  color: var(--paper-card);
+.road-scene-svg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
-.session-header button {
-  align-self: flex-start;
+.hwy-sign {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-1deg);
+  background: #2f6f3d;
+  border: 3px solid var(--paper-card);
+  border-radius: 5px;
+  padding: 0.4rem 0.9rem;
+  text-align: center;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+
+.road-scene.bare .hwy-sign {
+  top: -6px;
+}
+
+.hwy-sign-top {
+  color: var(--paper-card);
+  font-family: 'Alfa Slab One', serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+}
+
+.hwy-sign-sub {
+  color: #d9e8d0;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2px;
 }
 
 .flash-toast {
