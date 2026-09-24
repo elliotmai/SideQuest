@@ -9,8 +9,8 @@ import {
   getRedirectResult,
   signOut as firebaseSignOut,
 } from 'firebase/auth'
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
-import { auth, googleProvider, db } from '../firebase'
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { auth, googleProvider, db, getDocFreshFirst } from '../firebase'
 
 const AuthContext = createContext(null)
 
@@ -45,7 +45,7 @@ export function AuthProvider({ children }) {
       setUser(firebaseUser)
       try {
         const ref = doc(db, 'users', firebaseUser.uid)
-        const snap = await getDoc(ref)
+        const snap = await getDocFreshFirst(ref)
         if (snap.exists()) {
           setProfile(snap.data())
         } else {

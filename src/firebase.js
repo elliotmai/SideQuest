@@ -6,7 +6,13 @@ import {
   browserLocalPersistence,
   GoogleAuthProvider,
 } from 'firebase/auth'
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  getDoc,
+  getDocFromServer,
+} from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -34,3 +40,18 @@ export const auth = initializeAuth(app, {
   popupRedirectResolver: browserPopupRedirectResolver,
 })
 export const googleProvider = new GoogleAuthProvider()
+
+// A one-time doc read that always prefers the live server value over the local
+// offline cache — used for anything that must be identical across devices
+// (profile/username, pack & expansion content). Plain getDoc() can serve a
+// stale cached copy on a device that's been offline or backgrounded, which
+// looks like data silently disagreeing between devices. Falls back to the
+// normal cache-tolerant getDoc() only if the server fetch itself fails (e.g.
+// genuinely offline), so the app still works without a connection.
+export async function getDocFreshFirst(ref) {
+  try {
+    return await getDocFromServer(ref)
+  } catch {
+    return getDoc(ref)
+  }
+}
