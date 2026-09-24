@@ -38,14 +38,19 @@ function rollChaos() {
 // severity up (used for scoring), then No Shots caps the *delivered* instruction
 // back down to one drink (capping what you drink, not what it's worth), then Clean
 // zeroes the delivered drink out entirely while keeping the points.
-export function resolveDrink(baseDrink, modifierIds = [], playerMultiplier = 1) {
+export function resolveDrink(baseDrink, modifierIds = [], playerMultiplier = 1, basePoints) {
   const active = new Set(modifierIds)
   const chaosActive = active.has('chaos')
   const roll = chaosActive ? rollChaos() : { factor: 1, shotify: false, label: null }
 
   const severityType = roll.shotify ? 'shot' : baseDrink.type
   const severityAmount = (roll.shotify ? 1 : baseDrink.amount) * roll.factor * playerMultiplier
-  const points = pointsForDrink({ type: severityType, amount: severityAmount })
+  // A shotify roll overrides the event's own point value with the standard
+  // shot formula (it's replacing the instruction outright); otherwise an
+  // admin-set point override just scales the same way the default would.
+  const points = roll.shotify
+    ? pointsForDrink({ type: 'shot', amount: playerMultiplier })
+    : (basePoints ?? pointsForDrink(baseDrink)) * roll.factor * playerMultiplier
 
   let deliveredType = severityType
   let deliveredAmount = severityAmount

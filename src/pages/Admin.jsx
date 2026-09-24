@@ -12,12 +12,17 @@ import {
   slugify,
 } from '../lib/decks'
 import { STANDARD_DECK, JOKERS } from '../data/cards'
+import { pointsForDrink } from '../data/drinks'
+import { importDeckFile } from '../lib/importDeck'
+
+const IMPORT_ACCEPT = '.json,.xlsx,.xls,.csv,application/json,text/csv'
 
 const emptyEvent = () => ({
   id: `evt-${Math.random().toString(36).slice(2, 8)}`,
   kind: 'score',
   label: '',
   drink: { type: 'count', amount: 1 },
+  points: pointsForDrink({ type: 'count', amount: 1 }),
   factor: 2,
   cardCount: 1,
 })
@@ -30,21 +35,6 @@ function downloadJson(data, filename) {
   a.download = filename
   a.click()
   URL.revokeObjectURL(url)
-}
-
-function readJsonFile(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      try {
-        resolve(JSON.parse(reader.result))
-      } catch {
-        reject(new Error('That file isn’t valid JSON.'))
-      }
-    }
-    reader.onerror = () => reject(new Error('Could not read that file.'))
-    reader.readAsText(file)
-  })
 }
 
 function DeckEditor({ deck, onSave, onCancel }) {
@@ -83,10 +73,7 @@ function DeckEditor({ deck, onSave, onCancel }) {
     if (!file) return
     setImportError('')
     try {
-      const data = await readJsonFile(file)
-      if (!data.name || !Array.isArray(data.events)) {
-        throw new Error('File needs a "name" and an "events" array.')
-      }
+      const data = await importDeckFile(file)
       setName(data.name)
       setEmoji(data.emoji || '🎲')
       setDescription(data.description || '')
@@ -96,10 +83,14 @@ function DeckEditor({ deck, onSave, onCancel }) {
           kind: ev.kind === 'multiplier' ? 'multiplier' : 'score',
           label: ev.label || '',
           drink: ev.drink || { type: 'count', amount: 1 },
+          points: ev.points ?? (ev.drink ? pointsForDrink(ev.drink) : undefined),
           factor: ev.factor || 2,
           cardCount: ev.cardCount ?? 1,
         })),
       )
+      if (data.warnings?.length) {
+        setImportError(`Imported with notes: ${data.warnings.join(' ')}`)
+      }
     } catch (err) {
       setImportError(err.message)
     }
@@ -119,7 +110,7 @@ function DeckEditor({ deck, onSave, onCancel }) {
         <h2>{deck ? `Edit ${deck.name}` : 'New deck'}</h2>
         <div className="row">
           <button type="button" onClick={() => fileInputRef.current?.click()}>
-            Import JSON
+            Import file
           </button>
           <button type="button" onClick={handleExport}>
             Export JSON
@@ -127,12 +118,16 @@ function DeckEditor({ deck, onSave, onCancel }) {
           <input
             ref={fileInputRef}
             type="file"
-            accept="application/json"
+            accept={IMPORT_ACCEPT}
             onChange={handleImportFile}
             style={{ display: 'none' }}
           />
         </div>
       </div>
+      <p className="hint">
+        Import a .json export, or an .xlsx/.csv with columns Card Name, Drink (e.g. &ldquo;2
+        Drinks&rdquo;, &ldquo;Shot&rdquo;, &ldquo;Shotgun a beer&rdquo;), Points (optional), Card Count.
+      </p>
       {importError && <p className="hint" style={{ color: 'var(--coral)' }}>{importError}</p>}
 
       <div className={`admin-totals-banner ${deckIsClean ? 'ok' : 'warn'}`}>
@@ -195,7 +190,10 @@ function DeckEditor({ deck, onSave, onCancel }) {
                       <label className="field-label">Drink</label>
                       <select
                         value={event.drink.type}
-                        onChange={(e) => updateEvent(i, { drink: { ...event.drink, type: e.target.value } })}
+                        onChange={(e) => {
+                          const drink = { ...event.drink, type: e.target.value }
+                          updateEvent(i, { drink, points: pointsForDrink(drink) })
+                        }}
                       >
                         <option value="count">Drink(s)</option>
                         <option value="shot">Shot</option>
@@ -208,9 +206,10 @@ function DeckEditor({ deck, onSave, onCancel }) {
                         <label className="field-label">Amount</label>
                         <select
                           value={event.drink.amount}
-                          onChange={(e) =>
-                            updateEvent(i, { drink: { ...event.drink, amount: Number(e.target.value) } })
-                          }
+                          onChange={(e) => {
+                            const drink = { ...event.drink, amount: Number(e.target.value) }
+                            updateEvent(i, { drink, points: pointsForDrink(drink) })
+                          }}
                         >
                           <option value={1}>1 drink</option>
                           <option value={2}>2 drinks</option>
@@ -218,6 +217,15 @@ function DeckEditor({ deck, onSave, onCancel }) {
                         </select>
                       </div>
                     )}
+                    <div className="field-stack" style={{ width: 64 }}>
+                      <label className="field-label">Points</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={event.points ?? pointsForDrink(event.drink)}
+                        onChange={(e) => updateEvent(i, { points: Number(e.target.value) })}
+                      />
+                    </div>
                   </>
                 ) : (
                   <div className="field-stack">
@@ -280,11 +288,11 @@ function DeckSection({ title, decks, onDelete, saveFn }) {
     if (!file) return
     setImportError('')
     try {
-      const data = await readJsonFile(file)
-      if (!data.name || !Array.isArray(data.events)) {
-        throw new Error('File needs a "name" and an "events" array.')
-      }
+      const data = await importDeckFile(file)
       setEditing(data)
+      if (data.warnings?.length) {
+        setImportError(`Imported with notes: ${data.warnings.join(' ')}`)
+      }
     } catch (err) {
       setImportError(err.message)
     }
@@ -295,12 +303,12 @@ function DeckSection({ title, decks, onDelete, saveFn }) {
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>{title}</h2>
         <button type="button" onClick={() => importInputRef.current?.click()}>
-          Import new from JSON
+          Import new deck
         </button>
         <input
           ref={importInputRef}
           type="file"
-          accept="application/json"
+          accept={IMPORT_ACCEPT}
           onChange={handleImportNew}
           style={{ display: 'none' }}
         />
