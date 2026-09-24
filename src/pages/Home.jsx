@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import RoadScene from '../components/RoadScene'
+import UsernameStatus from '../components/UsernameStatus'
+import { useUsernameAvailability } from '../lib/useUsernameAvailability'
 
 export default function Home() {
   const { user, profile, setUsername, signInWithGoogle, signOut, signInError } = useAuth()
@@ -9,7 +11,22 @@ export default function Home() {
   const [joinCode, setJoinCode] = useState('')
   const [nameDraft, setNameDraft] = useState(profile?.username || '')
   const [accountError, setAccountError] = useState(null)
+  const [usernameError, setUsernameError] = useState(null)
+  const [savingUsername, setSavingUsername] = useState(false)
   const [linking, setLinking] = useState(false)
+  const usernameStatus = useUsernameAvailability(nameDraft, profile?.username, user?.uid)
+
+  async function handleSaveUsername() {
+    setUsernameError(null)
+    setSavingUsername(true)
+    try {
+      await setUsername(nameDraft.trim())
+    } catch (err) {
+      setUsernameError(err.message === 'taken' ? 'That username is already taken.' : 'Could not save username.')
+    } finally {
+      setSavingUsername(false)
+    }
+  }
 
   const FRIENDLY_ERRORS = {
     'auth/unauthorized-domain':
@@ -52,10 +69,15 @@ export default function Home() {
             onChange={(e) => setNameDraft(e.target.value)}
             placeholder="Enter a username"
           />
-          <button onClick={() => setUsername(nameDraft.trim())} disabled={!nameDraft.trim()}>
-            Save
+          <button
+            onClick={handleSaveUsername}
+            disabled={!nameDraft.trim() || savingUsername || usernameStatus === 'taken' || usernameStatus === 'checking'}
+          >
+            {savingUsername ? 'Saving...' : 'Save'}
           </button>
         </div>
+        <UsernameStatus status={usernameStatus} />
+        {usernameError && <p className="hint" style={{ color: 'var(--coral)' }}>{usernameError}</p>}
 
         {user?.isAnonymous ? (
           <>

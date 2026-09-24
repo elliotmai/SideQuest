@@ -3,6 +3,8 @@ import {
   doc,
   addDoc,
   updateDoc,
+  deleteDoc,
+  getDoc,
   arrayUnion,
   arrayRemove,
   query,
@@ -18,6 +20,12 @@ export async function findUserByUsername(username) {
   if (snap.empty) return null
   const d = snap.docs[0]
   return { uid: d.id, ...d.data() }
+}
+
+export async function getUsersByIds(uids) {
+  const unique = [...new Set(uids)]
+  const snaps = await Promise.all(unique.map((uid) => getDoc(doc(db, 'users', uid))))
+  return snaps.filter((s) => s.exists()).map((s) => ({ uid: s.id, ...s.data() }))
 }
 
 export async function addFriend(myUid, friendUid) {
@@ -45,4 +53,21 @@ export function subscribeMyGroups(uid, cb) {
   return onSnapshot(q, (snap) => {
     cb(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
   })
+}
+
+// Replaces a group's member list outright (the owner plus whichever friends
+// they picked) — lets one person keep several distinct crews (football
+// friends, beach crew, a partner-only group, ...) instead of one big list.
+export async function updateGroupMembers(groupId, ownerUid, memberUids) {
+  await updateDoc(doc(db, 'groups', groupId), {
+    members: [ownerUid, ...memberUids.filter((id) => id !== ownerUid)],
+  })
+}
+
+export async function renameGroup(groupId, name) {
+  await updateDoc(doc(db, 'groups', groupId), { name })
+}
+
+export async function deleteGroup(groupId) {
+  await deleteDoc(doc(db, 'groups', groupId))
 }
