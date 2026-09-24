@@ -62,14 +62,18 @@ export function subscribeSession(code, cb) {
   })
 }
 
+// Idempotent: rejoining a session you're already in (e.g. the auto-join
+// effect firing before the players snapshot has loaded, or reopening an
+// invite link) must never stomp an existing score/hand back to zero.
 export async function joinSession(code, { uid, name }) {
   const upperCode = code.toUpperCase()
   const ref = doc(db, 'sessions', upperCode, 'players', uid)
-  await setDoc(
-    ref,
-    { uid, name, score: 0, drinkUnits: 0, pendingMultiplier: 1, joinedAt: serverTimestamp() },
-    { merge: true },
-  )
+  const existing = await getDoc(ref)
+  if (existing.exists()) {
+    await setDoc(ref, { uid, name }, { merge: true })
+  } else {
+    await setDoc(ref, { uid, name, score: 0, drinkUnits: 0, pendingMultiplier: 1, joinedAt: serverTimestamp() })
+  }
   await updateDoc(doc(db, 'sessions', upperCode), {
     participantUids: arrayUnion(uid),
     datesPlayed: arrayUnion(todayKey()),
