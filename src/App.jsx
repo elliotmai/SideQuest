@@ -7,6 +7,7 @@ import SessionView from './pages/SessionView'
 import Friends from './pages/Friends'
 import Admin from './pages/Admin'
 import Print from './pages/Print'
+import RoadBackdrop from './components/RoadBackdrop'
 import './App.css'
 
 function Shell({ children }) {
@@ -46,6 +47,7 @@ function Shell({ children }) {
 export default function App() {
   return (
     <AuthProvider>
+      <RoadBackdrop />
       <BrowserRouter>
         <Shell>
           <Routes>

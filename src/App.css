@@ -29,6 +29,17 @@
   color: var(--ink);
   position: relative;
   width: fit-content;
+  /* Halo so the title stays legible whether it lands over the cream page or
+     the road backdrop's dark asphalt behind it. */
+  text-shadow:
+    -2px 0 var(--paper-card),
+    2px 0 var(--paper-card),
+    0 -2px var(--paper-card),
+    0 2px var(--paper-card),
+    -2px -2px var(--paper-card),
+    2px -2px var(--paper-card),
+    -2px 2px var(--paper-card),
+    2px 2px var(--paper-card);
 }
 
 .brand::before {
@@ -181,35 +192,12 @@
   flex-direction: column;
   gap: 0.5rem;
   margin: -1.25rem -1.25rem 0;
-  padding: 1.4rem 1.25rem 0;
+  padding: 1.4rem 1.25rem 1.6rem;
   background: linear-gradient(180deg, var(--coral) 0%, #f2a35c 100%);
   position: relative;
 }
 
-.session-header h1,
-.session-header .hint {
-  color: var(--paper-card);
-}
-
-.session-header button {
-  align-self: flex-start;
-}
-
-.road-scene {
-  position: relative;
-  height: 90px;
-  margin: -1.25rem -1.25rem 0;
-  overflow: hidden;
-  background: linear-gradient(180deg, var(--coral) 0%, #f2a35c 70%, var(--mustard) 100%);
-}
-
-.road-scene.bare {
-  height: 74px;
-  margin: 1rem -1.25rem 0;
-  background: transparent;
-}
-
-.road-scene.bare::after {
+.session-header::after {
   content: '';
   position: absolute;
   left: 0;
@@ -221,19 +209,33 @@
   background-repeat: repeat-x;
 }
 
-.road-scene-svg {
-  position: absolute;
-  bottom: 0;
-  left: 0;
+.session-header h1,
+.session-header .hint {
+  color: var(--paper-card);
+}
+
+.session-header button {
+  align-self: flex-start;
+}
+
+/* The road/sky itself lives in RoadBackdrop, fixed behind the whole app. */
+.road-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.road-backdrop-svg {
   width: 100%;
   height: 100%;
+  display: block;
 }
 
 .hwy-sign {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%) rotate(-1deg);
+  width: fit-content;
+  margin: 0.25rem auto;
+  transform: rotate(-1deg);
   background: #2f6f3d;
   border: 3px solid var(--paper-card);
   border-radius: 5px;
@@ -243,8 +245,8 @@
   white-space: nowrap;
 }
 
-.road-scene.bare .hwy-sign {
-  top: -6px;
+.session-header .hwy-sign {
+  align-self: center;
 }
 
 .hwy-sign-top {
