@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { subscribeMySessions } from '../lib/session'
 import { getPackOnce } from '../lib/decks'
+import Loading from '../components/Loading'
 
 export default function History() {
   const { user } = useAuth()
@@ -30,28 +31,33 @@ export default function History() {
       <h1>Game history</h1>
       <p className="hint">Every game you&rsquo;ve played, active or ended.</p>
 
-      {sessions === undefined && <p className="hint">Loading...</p>}
-      {sessions?.length === 0 && <p className="hint">No games yet — start one from the home screen.</p>}
+      {sessions === undefined && <Loading label="Loading your games..." />}
+      {sessions?.length === 0 && (
+        <section className="card">
+          <p className="hint" style={{ textAlign: 'center' }}>
+            No games yet — start one from the home screen.
+          </p>
+        </section>
+      )}
 
       {sessions?.map((s) => {
         const pack = packs[s.packId]
         const dates = (s.datesPlayed || []).slice().sort()
+        const ended = s.active === false
         return (
           <section key={s.code} className="card">
-            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="row between">
               <h2 style={{ margin: 0 }}>
                 {pack?.emoji} {pack?.name || 'Game'}
               </h2>
-              <span className="hint">{s.active === false ? 'Ended' : 'Active'}</span>
+              <span className={`status-pill ${ended ? 'ended' : 'active'}`}>{ended ? 'Ended' : 'Active'}</span>
             </div>
             <p className="hint">
               Code: <strong>{s.code}</strong>
               {dates.length > 0 && ` · Played ${dates.join(', ')}`}
             </p>
             {s.notes && <p className="hint">&ldquo;{s.notes}&rdquo;</p>}
-            <button onClick={() => navigate(`/session/${s.code}`)}>
-              {s.active === false ? 'View / resume' : 'Rejoin'}
-            </button>
+            <button onClick={() => navigate(`/session/${s.code}`)}>{ended ? 'View / resume' : 'Rejoin'}</button>
           </section>
         )
       })}

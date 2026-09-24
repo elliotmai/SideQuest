@@ -6,6 +6,7 @@ import { resolveDrink } from '../data/modes'
 import { drinkLabel } from '../data/drinks'
 import { buildDeckInstances, dealHand, playCard } from '../lib/cardGame'
 import RoadScene from '../components/RoadScene'
+import Loading from '../components/Loading'
 import {
   subscribeSession,
   subscribePlayers,
@@ -124,8 +125,19 @@ export default function SessionView() {
     dealPlayerDeck(code, user.uid, { hand, stock, discard: [] })
   }, [me, events, code, user])
 
-  if (session === undefined) return <div className="page">Loading...</div>
-  if (session === null) return <div className="page">Game not found.</div>
+  if (session === undefined)
+    return (
+      <div className="page">
+        <Loading label="Loading game..." />
+      </div>
+    )
+  if (session === null)
+    return (
+      <div className="page">
+        <h1>Game not found</h1>
+        <p className="hint">Double check the code: {code}</p>
+      </div>
+    )
 
   const shareUrl = `${window.location.origin}/join/${code}`
   const pendingMultiplier = me?.pendingMultiplier || 1
@@ -286,7 +298,7 @@ export default function SessionView() {
       <section className="card">
         <h2>Your cards</h2>
         {!myDeck ? (
-          <p className="hint">Dealing your hand...</p>
+          <Loading label="Dealing your hand..." />
         ) : (
           <>
             <div className="pile-row">
@@ -341,8 +353,13 @@ export default function SessionView() {
             .filter((p) => p.uid !== user.uid && p.hand?.length)
             .map((p) => (
               <div key={p.uid} className="peek-player">
-                <button className="peek-player-toggle" onClick={() => setExpandedUid((id) => (id === p.uid ? null : p.uid))}>
-                  {p.name} {expandedUid === p.uid ? '▾' : '▸'}
+                <button
+                  className="peek-player-toggle"
+                  aria-expanded={expandedUid === p.uid}
+                  onClick={() => setExpandedUid((id) => (id === p.uid ? null : p.uid))}
+                >
+                  {p.name}
+                  <span className="chevron">▸</span>
                 </button>
                 <HandRow hand={p.hand} events={events} mini={expandedUid !== p.uid} />
               </div>

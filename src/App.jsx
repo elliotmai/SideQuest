@@ -9,6 +9,7 @@ import History from './pages/History'
 import Admin from './pages/Admin'
 import Print from './pages/Print'
 import RoadBackdrop from './components/RoadBackdrop'
+import Loading from './components/Loading'
 import './App.css'
 
 function Shell({ children }) {
@@ -29,7 +30,8 @@ function Shell({ children }) {
   if (loading) {
     return (
       <div className="page">
-        <p>Loading Side Quest...</p>
+        <h1 className="brand">Side Quest</h1>
+        <Loading label="Getting things ready..." />
       </div>
     )
   }

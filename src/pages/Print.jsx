@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { getPackOnce, getExpansionOnce } from '../lib/decks'
 import { buildCardAssignments } from '../data/cards'
 import { drinkLabel, pointsForDrink } from '../data/drinks'
+import Loading from '../components/Loading'
 
 export default function Print() {
   const { kind, id } = useParams()
@@ -13,7 +14,12 @@ export default function Print() {
     fetcher(id).then(setDeck)
   }, [kind, id])
 
-  if (deck === undefined) return <div className="page">Loading...</div>
+  if (deck === undefined)
+    return (
+      <div className="page">
+        <Loading />
+      </div>
+    )
   if (deck === null) return <div className="page">Deck not found.</div>
 
   const { assignments, scoreCardsUsed, jokersUsed, isFullDeck } = buildCardAssignments(deck.events)
