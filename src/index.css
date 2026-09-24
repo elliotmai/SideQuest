@@ -1,12 +1,12 @@
 :root {
-  --paper: #f2e9d6;
-  --paper-card: #fffaf0;
-  --ink: #211d16;
-  --ink-soft: #6b6252;
-  --mustard: #e8a33d;
-  --coral: #e6553f;
-  --teal: #2f6f62;
-  --teal-deep: #1f4d43;
+  --cream: #f3e4c8;
+  --paper-card: #fdf8ec;
+  --ink: #4a2f22;
+  --ink-soft: #7a5c44;
+  --coral: #e8734a;
+  --coral-deep: #a84f30;
+  --mustard: #fdd061;
+  --dashes: #c9a876;
   color-scheme: light;
 }
 
@@ -23,18 +23,13 @@ body,
 body {
   margin: 0;
   color: var(--ink);
-  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: var(--paper);
-  background-image:
-    radial-gradient(circle, rgba(33, 29, 22, 0.09) 1px, transparent 1px);
-  background-size: 16px 16px;
+  font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--cream);
 }
 
 h1,
 h2 {
-  font-family: 'Anton', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  font-family: 'Alfa Slab One', serif;
   margin: 0;
 }
 
@@ -45,44 +40,42 @@ button {
 
 button {
   cursor: pointer;
-  border: 2.5px solid var(--ink);
-  border-radius: 10px;
-  padding: 0.6rem 1.1rem;
+  border: none;
+  border-radius: 14px;
+  padding: 0.65rem 1.1rem;
   background: var(--paper-card);
   color: var(--ink);
-  font-weight: 600;
-  box-shadow: 3px 3px 0 var(--ink);
+  font-weight: 700;
+  box-shadow: 0 2px 0 var(--dashes);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 
 button:hover:not(:disabled) {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 var(--ink);
+  transform: translateY(-1px);
 }
 
 button:active:not(:disabled) {
-  transform: translate(2px, 2px);
-  box-shadow: 0px 0px 0 var(--ink);
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 var(--dashes);
 }
 
 button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-  box-shadow: 3px 3px 0 var(--ink-soft);
 }
 
 button.primary {
   background: var(--coral);
   color: var(--paper-card);
   width: 100%;
-  padding: 0.95rem;
+  padding: 1rem;
   font-size: 1.05rem;
-  font-weight: 700;
+  box-shadow: 0 4px 0 var(--coral-deep);
 }
 
 input {
   background: var(--paper-card);
-  border: 2.5px solid var(--ink);
+  border: 1.5px dashed var(--dashes);
   color: var(--ink);
   border-radius: 10px;
   padding: 0.6rem 0.8rem;
