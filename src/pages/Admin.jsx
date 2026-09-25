@@ -44,6 +44,7 @@ function DeckEditor({ deck, onSave, onCancel }) {
   const [description, setDescription] = useState(deck?.description || '')
   const [events, setEvents] = useState(deck?.events || [emptyEvent()])
   const [importError, setImportError] = useState('')
+  const [saveError, setSaveError] = useState('')
   const fileInputRef = useRef(null)
 
   function updateEvent(index, patch) {
@@ -51,7 +52,15 @@ function DeckEditor({ deck, onSave, onCancel }) {
   }
 
   function handleSave() {
-    if (!name.trim() || events.some((e) => !e.label.trim())) return
+    if (!name.trim()) {
+      setSaveError('Give the deck a name before saving.')
+      return
+    }
+    if (events.some((e) => !e.label.trim())) {
+      setSaveError('Every event needs text before saving.')
+      return
+    }
+    setSaveError('')
     onSave({
       id: deck?.id || slugify(name),
       name: name.trim(),
@@ -268,6 +277,7 @@ function DeckEditor({ deck, onSave, onCancel }) {
         + Add event
       </button>
 
+      {saveError && <p className="hint" style={{ color: 'var(--coral)' }}>{saveError}</p>}
       <div className="row">
         <button className="primary" onClick={handleSave}>
           Save deck
