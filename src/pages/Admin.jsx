@@ -51,7 +51,7 @@ function DeckEditor({ deck, onSave, onCancel }) {
     setEvents((evts) => evts.map((e, i) => (i === index ? { ...e, ...patch } : e)))
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!name.trim()) {
       setSaveError('Give the deck a name before saving.')
       return
@@ -61,13 +61,17 @@ function DeckEditor({ deck, onSave, onCancel }) {
       return
     }
     setSaveError('')
-    onSave({
-      id: deck?.id || slugify(name),
-      name: name.trim(),
-      emoji,
-      description,
-      events,
-    })
+    try {
+      await onSave({
+        id: deck?.id || slugify(name),
+        name: name.trim(),
+        emoji,
+        description,
+        events,
+      })
+    } catch (err) {
+      setSaveError(err.message || 'Failed to save the deck.')
+    }
   }
 
   function handleExport() {
@@ -93,7 +97,9 @@ function DeckEditor({ deck, onSave, onCancel }) {
           kind: ev.kind === 'multiplier' ? 'multiplier' : 'score',
           label: ev.label || '',
           drink: ev.drink || { type: 'count', amount: 1 },
-          points: ev.points ?? (ev.drink ? pointsForDrink(ev.drink) : undefined),
+          // Multiplier events don't use points, but Firestore rejects an explicit
+          // `undefined` field, so default to 0 instead of leaving it unset.
+          points: ev.points ?? (ev.drink ? pointsForDrink(ev.drink) : 0),
           factor: ev.factor || 2,
           cardCount: ev.cardCount ?? 1,
         })),
@@ -181,13 +187,17 @@ function DeckEditor({ deck, onSave, onCancel }) {
                   <label className="field-label">Kind</label>
                   <select
                     value={event.kind}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const kind = e.target.value
                       updateEvent(i, {
-                        kind: e.target.value,
-                        drink: e.target.value === 'score' ? { type: 'count', amount: 1 } : undefined,
-                        factor: e.target.value === 'multiplier' ? 2 : undefined,
+                        kind,
+                        // Firestore rejects an explicit `undefined` field, so the unused side
+                        // (drink for a multiplier, factor for a score) just keeps its old value
+                        // instead of being cleared.
+                        ...(kind === 'score' ? { drink: { type: 'count', amount: 1 } } : {}),
+                        ...(kind === 'multiplier' ? { factor: 2 } : {}),
                       })
-                    }
+                    }}
                   >
                     <option value="score">Score</option>
                     <option value="multiplier">Multiplier card</option>
