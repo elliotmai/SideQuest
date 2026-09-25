@@ -350,7 +350,7 @@ function DeckSection({ title, decks, onDelete, saveFn }) {
       {editing ? (
         <DeckEditor
           key={editing.id || 'new'}
-          deck={editing.id ? editing : null}
+          deck={editing}
           onSave={async (data) => {
             await saveFn(data)
             setEditing(null)
