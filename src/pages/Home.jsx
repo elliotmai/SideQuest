@@ -136,7 +136,7 @@ export default function Home() {
             </p>
           )}
 
-          {user?.isAnonymous ? (
+          {user?.isAnonymous && (
             <>
               <p className="hint">
                 Create an account to keep your friends and groups if you switch devices or clear your
@@ -152,11 +152,10 @@ export default function Home() {
                 </p>
               )}
             </>
-          ) : (
-            <button className="ghost" onClick={signOut}>
-              Sign out
-            </button>
           )}
+          <button className="ghost" onClick={signOut}>
+            Sign out
+          </button>
         </section>
       )}
 
