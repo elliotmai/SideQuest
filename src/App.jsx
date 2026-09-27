@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from 're
 import { Home as HomeIcon, Dices, NotebookText, Users } from 'lucide-react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Home from './pages/Home'
+import SignIn from './pages/SignIn'
 import CreateSession from './pages/CreateSession'
 import JoinSession from './pages/JoinSession'
 import SessionView from './pages/SessionView'
@@ -38,17 +39,7 @@ function Shell({ children }) {
     )
   }
   if (!user) {
-    return (
-      <div className="page">
-        <h1 className="brand">Side Quest</h1>
-        <p>
-          Couldn&rsquo;t connect. Check your internet connection and reload the page.
-        </p>
-        <button className="primary" onClick={() => window.location.reload()}>
-          Retry
-        </button>
-      </div>
-    )
+    return <SignIn />
   }
   const isPrint = location.pathname.startsWith('/print')
 

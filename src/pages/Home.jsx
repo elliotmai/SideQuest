@@ -1,24 +1,53 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { KeyRound, Dices, Users, NotebookText } from 'lucide-react'
+import { Dices, Users, NotebookText, Mail } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import RoadScene from '../components/RoadScene'
 import UsernameStatus from '../components/UsernameStatus'
 import Avatar from '../components/Avatar'
 import CardIcon from '../components/CardIcon'
 import { useUsernameAvailability } from '../lib/useUsernameAvailability'
+import { subscribeMySessions } from '../lib/session'
+import { getPackOnce } from '../lib/decks'
+import { subscribeMyInvites, dismissInvite } from '../lib/invites'
 
 export default function Home() {
-  const { user, profile, setUsername, signInWithGoogle, signOut, signInError } = useAuth()
+  const { user, profile, setUsername, signOut } = useAuth()
   const navigate = useNavigate()
   const [joinCode, setJoinCode] = useState('')
   const [nameDraft, setNameDraft] = useState(profile?.username || '')
   const [editingProfile, setEditingProfile] = useState(false)
-  const [accountError, setAccountError] = useState(null)
   const [usernameError, setUsernameError] = useState(null)
   const [savingUsername, setSavingUsername] = useState(false)
-  const [linking, setLinking] = useState(false)
+  const [activeSession, setActiveSession] = useState(null)
+  const [activePack, setActivePack] = useState(null)
+  const [invites, setInvites] = useState([])
   const usernameStatus = useUsernameAvailability(nameDraft, profile?.username, user?.uid)
+
+  useEffect(() => {
+    if (!user) return
+    return subscribeMySessions(user.uid, (sessions) => {
+      setActiveSession(sessions.find((s) => s.active !== false) || null)
+    })
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    return subscribeMyInvites(user.uid, setInvites)
+  }, [user])
+
+  function acceptInvite(invite) {
+    dismissInvite(invite.id)
+    navigate(`/join/${invite.code}`)
+  }
+
+  useEffect(() => {
+    if (!activeSession?.packId) {
+      setActivePack(null)
+      return
+    }
+    getPackOnce(activeSession.packId).then(setActivePack)
+  }, [activeSession?.packId])
 
   async function handleSaveUsername() {
     setUsernameError(null)
@@ -33,33 +62,6 @@ export default function Home() {
     }
   }
 
-  const FRIENDLY_ERRORS = {
-    'auth/unauthorized-domain':
-      "This domain isn't authorized for Google sign-in yet — add it under Firebase Console → Authentication → Settings → Authorized domains.",
-    'auth/popup-closed-by-user': null, // user cancelled on purpose, not an error to show
-    'auth/network-request-failed': 'Network error — check your connection and try again.',
-  }
-
-  function describe(err) {
-    if (!err) return null
-    if (err.code in FRIENDLY_ERRORS) return FRIENDLY_ERRORS[err.code]
-    return `Sign-in failed (${err.code || 'unknown error'}) — ${err.message || 'try again.'}`
-  }
-
-  async function handleSignIn() {
-    setAccountError(null)
-    setLinking(true)
-    try {
-      await signInWithGoogle()
-    } catch (err) {
-      setAccountError(describe(err))
-    } finally {
-      setLinking(false)
-    }
-  }
-
-  const shownError = accountError ?? describe(signInError)
-
   return (
     <div className="page">
       <RoadScene signText="ROUTE 66" subText="Side Quest — Next Exit" />
@@ -70,14 +72,46 @@ export default function Home() {
         <Avatar uid={user?.uid} name={profile?.username} />
         <div className="profile-strip-info">
           <div className="profile-strip-name">{profile?.username || 'Guest'}</div>
-          <div className="profile-strip-sub">
-            {user?.isAnonymous ? 'Guest — this device only' : user?.displayName || user?.email}
-          </div>
+          <div className="profile-strip-sub">{user?.displayName || user?.email}</div>
         </div>
         <button className="ghost" onClick={() => setEditingProfile((v) => !v)}>
           {editingProfile ? 'Close' : 'Edit'}
         </button>
       </section>
+
+      {invites.map((invite) => (
+        <section key={invite.id} className="card hero-card">
+          <h2>
+            <CardIcon icon={Mail} tone="coral" /> Game invite
+          </h2>
+          <p className="hint">
+            {invite.fromName} invited you to {invite.packName ? `a game of ${invite.packName}` : 'a game'} ·
+            Code: <strong>{invite.code}</strong>
+          </p>
+          <div className="row">
+            <button className="primary" onClick={() => acceptInvite(invite)}>
+              Join game
+            </button>
+            <button className="ghost" onClick={() => dismissInvite(invite.id)}>
+              Dismiss
+            </button>
+          </div>
+        </section>
+      ))}
+
+      {activeSession && (
+        <section className="card hero-card">
+          <h2>
+            <CardIcon icon={Dices} tone="pine" /> You&rsquo;re in a game
+          </h2>
+          <p className="hint">
+            {activePack?.emoji} {activePack?.name || 'Game'} · Code: <strong>{activeSession.code}</strong>
+          </p>
+          <button className="primary" onClick={() => navigate(`/session/${activeSession.code}`)}>
+            Rejoin game
+          </button>
+        </section>
+      )}
 
       {editingProfile && (
         <section className="card">
@@ -103,27 +137,9 @@ export default function Home() {
             </p>
           )}
 
-          {user?.isAnonymous ? (
-            <>
-              <p className="hint">
-                Create an account to keep your friends and groups if you switch devices or clear your
-                browser.
-              </p>
-              <button onClick={handleSignIn} disabled={linking}>
-                <KeyRound size={16} strokeWidth={2.25} style={{ marginRight: '0.35rem', verticalAlign: '-3px' }} />
-                {linking ? 'Opening Google sign-in...' : 'Create account with Google'}
-              </button>
-              {shownError && (
-                <p className="hint" style={{ color: 'var(--coral-deep)' }}>
-                  {shownError}
-                </p>
-              )}
-            </>
-          ) : (
-            <button className="ghost" onClick={signOut}>
-              Sign out
-            </button>
-          )}
+          <button className="ghost" onClick={signOut}>
+            Sign out
+          </button>
         </section>
       )}
 

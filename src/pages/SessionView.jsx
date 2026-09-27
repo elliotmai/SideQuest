@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Printer, TrafficCone, Trophy, Medal, Megaphone, Layers, Eye, ChevronRight } from 'lucide-react'
+import { Printer, TrafficCone, Trophy, Medal, Megaphone, Layers, Eye, ChevronRight, UserPlus } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getPackOnce, getExpansionOnce } from '../lib/decks'
+import { getUsersByIds } from '../lib/friends'
+import { sendInvites } from '../lib/invites'
 import { resolvePackIcon } from '../lib/packIcon'
 import { resolveDrink } from '../data/modes'
 import { drinkLabel } from '../data/drinks'
@@ -71,7 +73,16 @@ export default function SessionView() {
   const [showDiscard, setShowDiscard] = useState(false)
   const [notesDraft, setNotesDraft] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
+  const [friends, setFriends] = useState([])
+  const [showInvite, setShowInvite] = useState(false)
+  const [selectedInviteUids, setSelectedInviteUids] = useState([])
+  const [sendingInvites, setSendingInvites] = useState(false)
+  const [inviteStatus, setInviteStatus] = useState('')
   const dealtRef = useRef(false)
+
+  useEffect(() => {
+    getUsersByIds(profile?.friends || []).then(setFriends)
+  }, [profile?.friends])
 
   useEffect(() => {
     const unsub1 = subscribeSession(code, setSession)
@@ -84,12 +95,16 @@ export default function SessionView() {
     }
   }, [code])
 
+  const [decksLoaded, setDecksLoaded] = useState(false)
   useEffect(() => {
     if (!session) return
-    getPackOnce(session.packId).then(setPack)
-    Promise.all((session.expansionIds || []).map(getExpansionOnce)).then((list) =>
-      setExpansions(list.filter(Boolean)),
-    )
+    setDecksLoaded(false)
+    Promise.all([
+      getPackOnce(session.packId).then(setPack),
+      Promise.all((session.expansionIds || []).map(getExpansionOnce)).then((list) =>
+        setExpansions(list.filter(Boolean)),
+      ),
+    ]).then(() => setDecksLoaded(true))
   }, [session])
 
   const notesLoadedRef = useRef(false)
@@ -115,7 +130,7 @@ export default function SessionView() {
   // Deal a hand once: either resume what's already saved, or deal a fresh one
   // the first time this player has events to build a deck from.
   useEffect(() => {
-    if (dealtRef.current || !me || events.length === 0) return
+    if (dealtRef.current || !me || !decksLoaded || events.length === 0) return
     if (me.hand) {
       setMyDeck({ hand: me.hand, stock: me.stock || [], discard: me.discard || [] })
       dealtRef.current = true
@@ -126,7 +141,7 @@ export default function SessionView() {
     dealtRef.current = true
     setMyDeck({ hand, stock, discard: [] })
     dealPlayerDeck(code, user.uid, { hand, stock, discard: [] })
-  }, [me, events, code, user])
+  }, [me, events, decksLoaded, code, user])
 
   if (session === undefined)
     return (
@@ -145,6 +160,29 @@ export default function SessionView() {
   const shareUrl = `${window.location.origin}/join/${code}`
   const pendingMultiplier = me?.pendingMultiplier || 1
   const datesPlayed = session.datesPlayed || []
+  const invitableFriends = friends.filter((f) => !players.some((p) => p.uid === f.uid))
+
+  function toggleInviteUid(uid) {
+    setSelectedInviteUids((ids) => (ids.includes(uid) ? ids.filter((id) => id !== uid) : [...ids, uid]))
+  }
+
+  async function handleSendInvites() {
+    if (selectedInviteUids.length === 0) return
+    setSendingInvites(true)
+    try {
+      await sendInvites(code, {
+        fromUid: user.uid,
+        fromName: profile?.username || 'A friend',
+        packName: pack?.name,
+        toUids: selectedInviteUids,
+      })
+      const names = friends.filter((f) => selectedInviteUids.includes(f.uid)).map((f) => f.username)
+      setInviteStatus(`Invited ${names.join(', ')}.`)
+      setSelectedInviteUids([])
+    } finally {
+      setSendingInvites(false)
+    }
+  }
 
   async function handleSaveNotes() {
     setSavingNotes(true)
@@ -224,6 +262,17 @@ export default function SessionView() {
         </p>
         <div className="row">
           <button onClick={() => navigator.clipboard?.writeText(shareUrl)}>Copy invite link</button>
+          {friends.length > 0 && (
+            <button
+              onClick={() => {
+                setShowInvite((v) => !v)
+                setInviteStatus('')
+              }}
+            >
+              <UserPlus size={16} strokeWidth={2.25} style={{ marginRight: '0.35rem', verticalAlign: '-3px' }} />
+              Invite friends
+            </button>
+          )}
           {session.packId && (
             <button onClick={() => navigate(`/print/pack/${session.packId}`)}>
               <Printer size={16} strokeWidth={2.25} style={{ marginRight: '0.35rem', verticalAlign: '-3px' }} />
@@ -231,6 +280,41 @@ export default function SessionView() {
             </button>
           )}
         </div>
+
+        {showInvite && (
+          <div className="card" style={{ marginTop: '0.75rem' }}>
+            {invitableFriends.length === 0 ? (
+              <p className="hint">Everyone you&rsquo;ve added as a friend is already in this game.</p>
+            ) : (
+              <div className="mode-list">
+                {invitableFriends.map((f) => (
+                  <label
+                    key={f.uid}
+                    className={`mode-row ${selectedInviteUids.includes(f.uid) ? 'selected' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedInviteUids.includes(f.uid)}
+                      onChange={() => toggleInviteUid(f.uid)}
+                    />
+                    <div className="mode-name">{f.username}</div>
+                  </label>
+                ))}
+              </div>
+            )}
+            {invitableFriends.length > 0 && (
+              <button
+                className="primary"
+                onClick={handleSendInvites}
+                disabled={selectedInviteUids.length === 0 || sendingInvites}
+              >
+                {sendingInvites ? 'Sending...' : 'Send invite(s)'}
+              </button>
+            )}
+            {inviteStatus && <p className="hint">{inviteStatus}</p>}
+          </div>
+        )}
+
         {pack && <RoadScene signText={`NOW ENTERING ${pack.name.toUpperCase()}`} subText="Pop. you & your crew" />}
       </div>
 
@@ -238,79 +322,11 @@ export default function SessionView() {
         <div className="flash-toast">This game has ended — reopen it to keep playing.</div>
       )}
 
-      <section className="card">
-        <div className="row between">
-          <h2>
-            <CardIcon icon={TrafficCone} tone="coral" /> Game
-          </h2>
-          {session.active === false ? (
-            <button onClick={handleResumeGame}>Resume game</button>
-          ) : (
-            <button onClick={handleEndGame}>End game</button>
-          )}
-        </div>
-        {datesPlayed.length > 0 && (
-          <p className="hint">Played on {datesPlayed.slice().sort().join(', ')}</p>
-        )}
-        <label className="field-label">Notes</label>
-        <textarea
-          value={notesDraft}
-          onChange={(e) => setNotesDraft(e.target.value)}
-          onBlur={handleSaveNotes}
-          placeholder="Who won, what happened, anything to remember..."
-          rows={3}
-        />
-        {savingNotes && <p className="hint">Saving...</p>}
-      </section>
-
       {pendingMultiplier > 1 && (
         <div className="flash-toast">×{pendingMultiplier} multiplier armed — your next tap counts double!</div>
       )}
 
-      <section className="card">
-        <h2><CardIcon icon={Trophy} tone="mustard" /> Scoreboard</h2>
-        <ol className="scoreboard">
-          {players.map((p, i) => {
-            const medalTone = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''
-            return (
-              <li key={p.uid} className={p.uid === user.uid ? 'me' : ''}>
-                <span className={`rank-badge ${medalTone}`}>
-                  {medalTone ? <Medal size={15} strokeWidth={2.25} /> : i + 1}
-                </span>
-                <span className="player-name">{p.name}</span>
-                <span className="player-score">{p.score} pts</span>
-              </li>
-            )
-          })}
-        </ol>
-      </section>
-
-      <section className="card">
-        <h2><CardIcon icon={Megaphone} tone="pine" /> Activity</h2>
-        <ol className="scoreboard">
-          {activity.length === 0 && <li style={{ border: 'none' }}>No taps yet — be the first.</li>}
-          {activity.slice(0, 3).map((entry) => (
-            <li key={entry.id} style={{ border: 'none', background: 'transparent', padding: '0.25rem 0' }}>
-              <span className="player-name" style={{ flex: 'none' }}>
-                {entry.name}
-              </span>
-              <span className="player-score" style={{ flex: 1, textAlign: 'left', marginLeft: '0.5rem' }}>
-                {entry.eventLabel} —{' '}
-                {entry.multiplierArmed
-                  ? `×${entry.multiplierArmed} armed`
-                  : entry.drink
-                    ? drinkLabel(entry.drink)
-                    : `${entry.points} pts`}
-              </span>
-            </li>
-          ))}
-        </ol>
-        {activity.length > 3 && (
-          <p className="hint">+ {activity.length - 3} earlier {activity.length - 3 === 1 ? 'tap' : 'taps'}</p>
-        )}
-      </section>
-
-      <section className="card">
+      <section className="card cards-focal">
         <h2><CardIcon icon={Layers} tone="coral" /> Your cards</h2>
         {!myDeck ? (
           <Loading label="Dealing your hand..." />
@@ -381,6 +397,74 @@ export default function SessionView() {
             ))}
         </section>
       )}
+
+      <section className="card">
+        <div className="row between">
+          <h2>
+            <CardIcon icon={TrafficCone} tone="coral" /> Game
+          </h2>
+          {session.active === false ? (
+            <button onClick={handleResumeGame}>Resume game</button>
+          ) : (
+            <button onClick={handleEndGame}>End game</button>
+          )}
+        </div>
+        {datesPlayed.length > 0 && (
+          <p className="hint">Played on {datesPlayed.slice().sort().join(', ')}</p>
+        )}
+        <label className="field-label">Notes</label>
+        <textarea
+          value={notesDraft}
+          onChange={(e) => setNotesDraft(e.target.value)}
+          onBlur={handleSaveNotes}
+          placeholder="Who won, what happened, anything to remember..."
+          rows={3}
+        />
+        {savingNotes && <p className="hint">Saving...</p>}
+      </section>
+
+      <section className="card">
+        <h2><CardIcon icon={Trophy} tone="mustard" /> Scoreboard</h2>
+        <ol className="scoreboard">
+          {players.map((p, i) => {
+            const medalTone = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''
+            return (
+              <li key={p.uid} className={p.uid === user.uid ? 'me' : ''}>
+                <span className={`rank-badge ${medalTone}`}>
+                  {medalTone ? <Medal size={15} strokeWidth={2.25} /> : i + 1}
+                </span>
+                <span className="player-name">{p.name}</span>
+                <span className="player-score">{p.score} pts</span>
+              </li>
+            )
+          })}
+        </ol>
+      </section>
+
+      <section className="card">
+        <h2><CardIcon icon={Megaphone} tone="pine" /> Activity</h2>
+        <ol className="scoreboard">
+          {activity.length === 0 && <li style={{ border: 'none' }}>No taps yet — be the first.</li>}
+          {activity.slice(0, 3).map((entry) => (
+            <li key={entry.id} style={{ border: 'none', background: 'transparent', padding: '0.25rem 0' }}>
+              <span className="player-name" style={{ flex: 'none' }}>
+                {entry.name}
+              </span>
+              <span className="player-score" style={{ flex: 1, textAlign: 'left', marginLeft: '0.5rem' }}>
+                {entry.eventLabel} —{' '}
+                {entry.multiplierArmed
+                  ? `×${entry.multiplierArmed} armed`
+                  : entry.drink
+                    ? drinkLabel(entry.drink)
+                    : `${entry.points} pts`}
+              </span>
+            </li>
+          ))}
+        </ol>
+        {activity.length > 3 && (
+          <p className="hint">+ {activity.length - 3} earlier {activity.length - 3 === 1 ? 'tap' : 'taps'}</p>
+        )}
+      </section>
     </div>
   )
 }

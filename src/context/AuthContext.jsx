@@ -1,15 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import {
   onAuthStateChanged,
-  signInAnonymously,
   signInWithPopup,
   signInWithRedirect,
-  linkWithPopup,
-  linkWithRedirect,
   getRedirectResult,
   signOut as firebaseSignOut,
 } from 'firebase/auth'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore'
 import { auth, googleProvider, db, getDocFreshFirst } from '../firebase'
 import { claimUsername } from '../lib/usernames'
 
@@ -22,8 +19,8 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError] = useState(null)
   const [signInError, setSignInError] = useState(null)
 
-  // Catches errors from a signInWithRedirect/linkWithRedirect round trip (the
-  // popup fallback below) — onAuthStateChanged alone won't surface these.
+  // Catches errors from a signInWithRedirect round trip (the popup fallback
+  // below) — onAuthStateChanged alone won't surface these.
   useEffect(() => {
     getRedirectResult(auth).catch((err) => {
       console.error('Google redirect sign-in failed', err)
@@ -34,13 +31,9 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {
-        try {
-          await signInAnonymously(auth)
-        } catch (err) {
-          console.error('Anonymous sign-in failed', err)
-          setAuthError(err)
-          setLoading(false)
-        }
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
         return
       }
       setUser(firebaseUser)
@@ -61,7 +54,6 @@ export function AuthProvider({ children }) {
           }
           const initial = {
             username,
-            isAnonymous: firebaseUser.isAnonymous,
             friends: [],
             groups: [],
             createdAt: serverTimestamp(),
@@ -77,7 +69,6 @@ export function AuthProvider({ children }) {
         setAuthError(err)
         setProfile({
           username: localStorage.getItem('sq_username') || `Guest${firebaseUser.uid.slice(0, 4)}`,
-          isAnonymous: firebaseUser.isAnonymous,
           friends: [],
           groups: [],
         })
@@ -86,6 +77,17 @@ export function AuthProvider({ children }) {
     })
     return unsub
   }, [])
+
+  // Keeps `profile` live after the bootstrap above — otherwise friends added
+  // by *you* (which write straight to your own doc, same as anyone else's)
+  // and friends added by someone else (who writes straight to your doc)
+  // would only ever show up after a full reload.
+  useEffect(() => {
+    if (!user) return
+    return onSnapshot(doc(db, 'users', user.uid), (snap) => {
+      if (snap.exists()) setProfile(snap.data())
+    })
+  }, [user])
 
   async function setUsername(username) {
     const trimmed = username.trim()
@@ -108,30 +110,13 @@ export function AuthProvider({ children }) {
   async function signInWithGoogle() {
     setSignInError(null)
     try {
-      if (user?.isAnonymous) {
-        try {
-          const result = await linkWithPopup(user, googleProvider)
-          return result.user
-        } catch (err) {
-          // Account already exists with these credentials on another user — fall back to plain sign-in.
-          if (err.code === 'auth/credential-already-in-use') {
-            const result = await signInWithPopup(auth, googleProvider)
-            return result.user
-          }
-          throw err
-        }
-      }
       const result = await signInWithPopup(auth, googleProvider)
       return result.user
     } catch (err) {
       if (REDIRECT_FALLBACK_CODES.has(err.code)) {
         // Navigates away — nothing after this runs; getRedirectResult() on the
         // next load (above) picks up the outcome.
-        if (user?.isAnonymous) {
-          await linkWithRedirect(user, googleProvider)
-        } else {
-          await signInWithRedirect(auth, googleProvider)
-        }
+        await signInWithRedirect(auth, googleProvider)
         return
       }
       setSignInError(err)

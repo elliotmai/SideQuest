@@ -64,6 +64,19 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && request.auth.uid in resource.data.members;
     }
 
+    // Game invites: an invite is visible to the sender and the invited
+    // friend only, either of whom can dismiss it (accepting is just joining
+    // the session by its code, then dismissing). Nobody can edit one in
+    // place — a new invite is just a new doc.
+    match /invites/{inviteId} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == resource.data.toUid || request.auth.uid == resource.data.fromUid);
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.fromUid;
+      allow delete: if request.auth != null &&
+        (request.auth.uid == resource.data.toUid || request.auth.uid == resource.data.fromUid);
+      allow update: if false;
+    }
+
     // Sessions are open to anyone with the code (that's the point of a shareable link).
     match /sessions/{code} {
       allow read: if request.auth != null;
