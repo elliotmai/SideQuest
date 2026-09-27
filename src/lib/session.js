@@ -12,8 +12,10 @@ import {
   query,
   where,
   orderBy,
+  runTransaction,
 } from 'firebase/firestore'
 import { db } from '../firebase'
+import { drawCards, playSharedCard } from './cardGame'
 
 // Local-date (not UTC) "YYYY-MM-DD" — a session played late at night should
 // still land on the day the player thinks of it as, not shift with UTC.
@@ -32,7 +34,11 @@ function generateCode(length = 6) {
   return code
 }
 
-export async function createSession({ packId, expansionIds = [], modifierIds = [], hostUid, hostName }) {
+// `stock` is the session's one shared, pre-shuffled deck (built once by the
+// host from the chosen pack + expansions — see CreateSession.jsx) that every
+// player's hand is dealt from and every played card is discarded back into,
+// rather than each player holding their own independent copy of the deck.
+export async function createSession({ packId, expansionIds = [], modifierIds = [], hostUid, hostName, stock = [] }) {
   const code = generateCode()
   const ref = doc(db, 'sessions', code)
   await setDoc(ref, {
@@ -45,6 +51,8 @@ export async function createSession({ packId, expansionIds = [], modifierIds = [
     notes: '',
     participantUids: [hostUid],
     datesPlayed: [todayKey()],
+    stock,
+    discard: [],
     createdAt: serverTimestamp(),
   })
   await joinSession(code, { uid: hostUid, name: hostName })
@@ -95,11 +103,11 @@ export function subscribeEvents(code, cb) {
 }
 
 // `drink`/`points` are already fully resolved (mode modifiers + any consumed
-// multiplier applied) by the caller — see data/modes.js#resolveDrink.
-// `deck`, if given, is { hand, stock, discard } after playCard() — persisted
-// in the same write as the score so a page refresh mid-animation can't lose
-// or duplicate a card.
-export async function logEvent(code, { uid, name, eventId, eventLabel, drink, points, deck }) {
+// multiplier applied) by the caller — see data/modes.js#resolveDrink. The
+// played card's hand/stock/discard bookkeeping is handled separately by
+// playSharedCard() below, since it has to happen in the same transaction as
+// everyone else's draws from the shared deck.
+export async function logEvent(code, { uid, name, eventId, eventLabel, drink, points }) {
   const upperCode = code.toUpperCase()
   await addDoc(collection(db, 'sessions', upperCode, 'events'), {
     uid,
@@ -114,12 +122,11 @@ export async function logEvent(code, { uid, name, eventId, eventLabel, drink, po
     score: increment(points),
     drinkUnits: increment(drink.amount),
     pendingMultiplier: 1,
-    ...(deck ? { hand: deck.hand, stock: deck.stock, discard: deck.discard } : {}),
   })
 }
 
 // Arms a multiplier card for the tapping player's *next* scored event only.
-export async function armMultiplier(code, { uid, name, eventId, eventLabel, factor, deck }) {
+export async function armMultiplier(code, { uid, name, eventId, eventLabel, factor }) {
   const upperCode = code.toUpperCase()
   await addDoc(collection(db, 'sessions', upperCode, 'events'), {
     uid,
@@ -131,13 +138,49 @@ export async function armMultiplier(code, { uid, name, eventId, eventLabel, fact
   })
   await updateDoc(doc(db, 'sessions', upperCode, 'players', uid), {
     pendingMultiplier: factor,
-    ...(deck ? { hand: deck.hand, stock: deck.stock, discard: deck.discard } : {}),
   })
 }
 
-// Deals a player's personal hand/stock/discard piles for this session, once.
-export async function dealPlayerDeck(code, uid, { hand, stock, discard }) {
-  await updateDoc(doc(db, 'sessions', code.toUpperCase(), 'players', uid), { hand, stock, discard })
+// Deals a player's hand by drawing `handSize` cards off the session's one
+// shared stock pile (reshuffling the shared discard back in if it runs dry).
+// Runs as a transaction so two players joining at once can't both be dealt
+// the same card off the top of the pile. Idempotent: if this player already
+// has a hand (e.g. the effect that calls this fires twice), it's returned
+// as-is rather than dealing a second one.
+export async function dealPlayerHand(code, uid, handSize = 5) {
+  const upperCode = code.toUpperCase()
+  const sessionRef = doc(db, 'sessions', upperCode)
+  const playerRef = doc(db, 'sessions', upperCode, 'players', uid)
+  return runTransaction(db, async (tx) => {
+    const [sessionSnap, playerSnap] = await Promise.all([tx.get(sessionRef), tx.get(playerRef)])
+    const existingHand = playerSnap.data()?.hand
+    if (existingHand) return existingHand
+
+    const session = sessionSnap.data()
+    const { drawn, stock, discard } = drawCards(session.stock || [], session.discard || [], handSize)
+    tx.update(sessionRef, { stock, discard })
+    tx.update(playerRef, { hand: drawn })
+    return drawn
+  })
+}
+
+// Plays the card at `index` out of this player's hand: discards it onto the
+// shared pile and draws its replacement from the same shared stock, all in
+// one transaction so two players can't both draw the card currently on top.
+// Returns { hand, playedCard, drawnCard } — see cardGame.js#playSharedCard.
+export async function playSessionCard(code, uid, index) {
+  const upperCode = code.toUpperCase()
+  const sessionRef = doc(db, 'sessions', upperCode)
+  const playerRef = doc(db, 'sessions', upperCode, 'players', uid)
+  return runTransaction(db, async (tx) => {
+    const [sessionSnap, playerSnap] = await Promise.all([tx.get(sessionRef), tx.get(playerRef)])
+    const session = sessionSnap.data()
+    const hand = playerSnap.data()?.hand || []
+    const result = playSharedCard(hand, session.stock || [], session.discard || [], index)
+    tx.update(sessionRef, { stock: result.stock, discard: result.discard })
+    tx.update(playerRef, { hand: result.hand })
+    return result
+  })
 }
 
 export async function endSession(code) {
