@@ -177,6 +177,9 @@ export default function SessionView() {
       const names = friends.filter((f) => selectedInviteUids.includes(f.uid)).map((f) => f.username)
       setInviteStatus(`Invited ${names.join(', ')}.`)
       setSelectedInviteUids([])
+    } catch (err) {
+      console.error('Failed to send invite(s)', err)
+      setInviteStatus("Couldn't send that invite — check your connection and try again.")
     } finally {
       setSendingInvites(false)
     }
