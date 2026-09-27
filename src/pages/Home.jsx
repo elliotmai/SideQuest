@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { KeyRound, Dices, Users, NotebookText } from 'lucide-react'
+import { KeyRound, Dices, Users, NotebookText, Mail } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import RoadScene from '../components/RoadScene'
 import UsernameStatus from '../components/UsernameStatus'
@@ -9,6 +9,7 @@ import CardIcon from '../components/CardIcon'
 import { useUsernameAvailability } from '../lib/useUsernameAvailability'
 import { subscribeMySessions } from '../lib/session'
 import { getPackOnce } from '../lib/decks'
+import { subscribeMyInvites, dismissInvite } from '../lib/invites'
 
 export default function Home() {
   const { user, profile, setUsername, signInWithGoogle, signOut, signInError } = useAuth()
@@ -22,6 +23,7 @@ export default function Home() {
   const [linking, setLinking] = useState(false)
   const [activeSession, setActiveSession] = useState(null)
   const [activePack, setActivePack] = useState(null)
+  const [invites, setInvites] = useState([])
   const usernameStatus = useUsernameAvailability(nameDraft, profile?.username, user?.uid)
 
   useEffect(() => {
@@ -30,6 +32,16 @@ export default function Home() {
       setActiveSession(sessions.find((s) => s.active !== false) || null)
     })
   }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    return subscribeMyInvites(user.uid, setInvites)
+  }, [user])
+
+  function acceptInvite(invite) {
+    dismissInvite(invite.id)
+    navigate(`/join/${invite.code}`)
+  }
 
   useEffect(() => {
     if (!activeSession?.packId) {
@@ -97,6 +109,26 @@ export default function Home() {
           {editingProfile ? 'Close' : 'Edit'}
         </button>
       </section>
+
+      {invites.map((invite) => (
+        <section key={invite.id} className="card hero-card">
+          <h2>
+            <CardIcon icon={Mail} tone="coral" /> Game invite
+          </h2>
+          <p className="hint">
+            {invite.fromName} invited you to {invite.packName ? `a game of ${invite.packName}` : 'a game'} ·
+            Code: <strong>{invite.code}</strong>
+          </p>
+          <div className="row">
+            <button className="primary" onClick={() => acceptInvite(invite)}>
+              Join game
+            </button>
+            <button className="ghost" onClick={() => dismissInvite(invite.id)}>
+              Dismiss
+            </button>
+          </div>
+        </section>
+      ))}
 
       {activeSession && (
         <section className="card hero-card">

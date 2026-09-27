@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Printer, TrafficCone, Trophy, Medal, Megaphone, Layers, Eye, ChevronRight } from 'lucide-react'
+import { Printer, TrafficCone, Trophy, Medal, Megaphone, Layers, Eye, ChevronRight, UserPlus } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getPackOnce, getExpansionOnce } from '../lib/decks'
+import { getUsersByIds } from '../lib/friends'
+import { sendInvites } from '../lib/invites'
 import { resolvePackIcon } from '../lib/packIcon'
 import { resolveDrink } from '../data/modes'
 import { drinkLabel } from '../data/drinks'
@@ -71,7 +73,16 @@ export default function SessionView() {
   const [showDiscard, setShowDiscard] = useState(false)
   const [notesDraft, setNotesDraft] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
+  const [friends, setFriends] = useState([])
+  const [showInvite, setShowInvite] = useState(false)
+  const [selectedInviteUids, setSelectedInviteUids] = useState([])
+  const [sendingInvites, setSendingInvites] = useState(false)
+  const [inviteStatus, setInviteStatus] = useState('')
   const dealtRef = useRef(false)
+
+  useEffect(() => {
+    getUsersByIds(profile?.friends || []).then(setFriends)
+  }, [profile?.friends])
 
   useEffect(() => {
     const unsub1 = subscribeSession(code, setSession)
@@ -149,6 +160,29 @@ export default function SessionView() {
   const shareUrl = `${window.location.origin}/join/${code}`
   const pendingMultiplier = me?.pendingMultiplier || 1
   const datesPlayed = session.datesPlayed || []
+  const invitableFriends = friends.filter((f) => !players.some((p) => p.uid === f.uid))
+
+  function toggleInviteUid(uid) {
+    setSelectedInviteUids((ids) => (ids.includes(uid) ? ids.filter((id) => id !== uid) : [...ids, uid]))
+  }
+
+  async function handleSendInvites() {
+    if (selectedInviteUids.length === 0) return
+    setSendingInvites(true)
+    try {
+      await sendInvites(code, {
+        fromUid: user.uid,
+        fromName: profile?.username || 'A friend',
+        packName: pack?.name,
+        toUids: selectedInviteUids,
+      })
+      const names = friends.filter((f) => selectedInviteUids.includes(f.uid)).map((f) => f.username)
+      setInviteStatus(`Invited ${names.join(', ')}.`)
+      setSelectedInviteUids([])
+    } finally {
+      setSendingInvites(false)
+    }
+  }
 
   async function handleSaveNotes() {
     setSavingNotes(true)
@@ -228,6 +262,17 @@ export default function SessionView() {
         </p>
         <div className="row">
           <button onClick={() => navigator.clipboard?.writeText(shareUrl)}>Copy invite link</button>
+          {friends.length > 0 && (
+            <button
+              onClick={() => {
+                setShowInvite((v) => !v)
+                setInviteStatus('')
+              }}
+            >
+              <UserPlus size={16} strokeWidth={2.25} style={{ marginRight: '0.35rem', verticalAlign: '-3px' }} />
+              Invite friends
+            </button>
+          )}
           {session.packId && (
             <button onClick={() => navigate(`/print/pack/${session.packId}`)}>
               <Printer size={16} strokeWidth={2.25} style={{ marginRight: '0.35rem', verticalAlign: '-3px' }} />
@@ -235,6 +280,41 @@ export default function SessionView() {
             </button>
           )}
         </div>
+
+        {showInvite && (
+          <div className="card" style={{ marginTop: '0.75rem' }}>
+            {invitableFriends.length === 0 ? (
+              <p className="hint">Everyone you&rsquo;ve added as a friend is already in this game.</p>
+            ) : (
+              <div className="mode-list">
+                {invitableFriends.map((f) => (
+                  <label
+                    key={f.uid}
+                    className={`mode-row ${selectedInviteUids.includes(f.uid) ? 'selected' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedInviteUids.includes(f.uid)}
+                      onChange={() => toggleInviteUid(f.uid)}
+                    />
+                    <div className="mode-name">{f.username}</div>
+                  </label>
+                ))}
+              </div>
+            )}
+            {invitableFriends.length > 0 && (
+              <button
+                className="primary"
+                onClick={handleSendInvites}
+                disabled={selectedInviteUids.length === 0 || sendingInvites}
+              >
+                {sendingInvites ? 'Sending...' : 'Send invite(s)'}
+              </button>
+            )}
+            {inviteStatus && <p className="hint">{inviteStatus}</p>}
+          </div>
+        )}
+
         {pack && <RoadScene signText={`NOW ENTERING ${pack.name.toUpperCase()}`} subText="Pop. you & your crew" />}
       </div>
 
