@@ -3,6 +3,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  getDocs,
   addDoc,
   updateDoc,
   increment,
@@ -13,6 +14,7 @@ import {
   where,
   orderBy,
   runTransaction,
+  writeBatch,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { drawCards, playSharedCard } from './cardGame'
@@ -198,6 +200,23 @@ export async function resumeSession(code) {
 
 export async function updateSessionNotes(code, notes) {
   await updateDoc(doc(db, 'sessions', code.toUpperCase()), { notes })
+}
+
+// Permanently removes a session and its players/events subcollections
+// (Firestore never cascades those automatically). Host-only — see
+// firestore.rules — so one guest can't wipe the whole table's record.
+export async function deleteSession(code) {
+  const upperCode = code.toUpperCase()
+  const sessionRef = doc(db, 'sessions', upperCode)
+  const [playersSnap, eventsSnap] = await Promise.all([
+    getDocs(collection(db, 'sessions', upperCode, 'players')),
+    getDocs(collection(db, 'sessions', upperCode, 'events')),
+  ])
+  const batch = writeBatch(db)
+  playersSnap.docs.forEach((d) => batch.delete(d.ref))
+  eventsSnap.docs.forEach((d) => batch.delete(d.ref))
+  batch.delete(sessionRef)
+  await batch.commit()
 }
 
 // Every session this player has ever joined, newest-created first. Sorted
