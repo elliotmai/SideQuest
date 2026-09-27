@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { createSession } from '../lib/session'
 import { subscribePacks, subscribeExpansions } from '../lib/decks'
 import { resolvePackIcon } from '../lib/packIcon'
+import { buildDeckInstances, shuffle } from '../lib/cardGame'
 import CardIcon from '../components/CardIcon'
 
 function toggleId(list, id) {
@@ -38,12 +39,21 @@ export default function CreateSession() {
     if (!packId) return
     setCreating(true)
     try {
+      // Built once, here, so the whole table shares this exact shuffled
+      // pile — every player's hand comes out of it and every played card
+      // goes back into it, rather than each player getting their own copy.
+      const pack = packs.find((p) => p.id === packId)
+      const selectedExpansions = expansions.filter((e) => expansionIds.includes(e.id))
+      const events = [...(pack?.events || []), ...selectedExpansions.flatMap((e) => e.events || [])]
+      const stock = shuffle(buildDeckInstances(events))
+
       const code = await createSession({
         packId,
         expansionIds,
         modifierIds,
         hostUid: user.uid,
         hostName: profile?.username || 'Host',
+        stock,
       })
       navigate(`/session/${code}`)
     } finally {
