@@ -126,6 +126,7 @@
   flex-direction: column;
   gap: 0.8rem;
   box-shadow: var(--shadow-soft);
+  container-type: inline-size;
 }
 
 .card h2 {
@@ -800,9 +801,11 @@ button.pack-tile:active:not(:disabled) {
 }
 
 .play-card {
-  width: 150px;
+  width: clamp(110px, 30vw, 190px);
+  width: clamp(110px, 26cqw, 190px);
   height: auto;
-  min-height: 210px;
+  min-height: clamp(150px, 42vw, 210px);
+  min-height: clamp(150px, 36cqw, 210px);
   flex-shrink: 0;
   background: var(--paper-card);
   border: 2px solid var(--ink);
@@ -812,10 +815,11 @@ button.pack-tile:active:not(:disabled) {
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 0.85rem;
+  padding: clamp(0.55rem, 2.4vw, 0.85rem);
   text-align: left;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: clamp(0.82rem, 3.4vw, 1rem);
+  font-size: clamp(0.82rem, 2.9cqw, 1rem);
   line-height: 1.25;
   transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
@@ -896,18 +900,22 @@ button.play-card:disabled {
 }
 
 .play-card.mini {
-  width: 84px;
+  width: clamp(64px, 20vw, 100px);
+  width: clamp(64px, 16cqw, 100px);
   height: auto;
-  min-height: 108px;
-  padding: 0.4rem;
-  font-size: 0.68rem;
+  min-height: clamp(84px, 26vw, 130px);
+  min-height: clamp(84px, 21cqw, 130px);
+  padding: clamp(0.3rem, 1.6vw, 0.4rem);
+  font-size: clamp(0.6rem, 2.4vw, 0.68rem);
+  font-size: clamp(0.6rem, 2cqw, 0.68rem);
   line-height: 1.15;
   gap: 0.25rem;
   cursor: default;
 }
 
 .play-card.mini .play-card-badge {
-  font-size: 0.58rem;
+  font-size: clamp(0.5rem, 2vw, 0.58rem);
+  font-size: clamp(0.5rem, 1.7cqw, 0.58rem);
 }
 
 .peek-player {
