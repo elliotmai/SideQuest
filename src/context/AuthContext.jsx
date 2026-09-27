@@ -6,7 +6,7 @@ import {
   getRedirectResult,
   signOut as firebaseSignOut,
 } from 'firebase/auth'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore'
 import { auth, googleProvider, db, getDocFreshFirst } from '../firebase'
 import { claimUsername } from '../lib/usernames'
 
@@ -77,6 +77,17 @@ export function AuthProvider({ children }) {
     })
     return unsub
   }, [])
+
+  // Keeps `profile` live after the bootstrap above — otherwise friends added
+  // by *you* (which write straight to your own doc, same as anyone else's)
+  // and friends added by someone else (who writes straight to your doc)
+  // would only ever show up after a full reload.
+  useEffect(() => {
+    if (!user) return
+    return onSnapshot(doc(db, 'users', user.uid), (snap) => {
+      if (snap.exists()) setProfile(snap.data())
+    })
+  }, [user])
 
   async function setUsername(username) {
     const trimmed = username.trim()
