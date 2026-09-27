@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { KeyRound, Dices, Users, NotebookText } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -7,6 +7,8 @@ import UsernameStatus from '../components/UsernameStatus'
 import Avatar from '../components/Avatar'
 import CardIcon from '../components/CardIcon'
 import { useUsernameAvailability } from '../lib/useUsernameAvailability'
+import { subscribeMySessions } from '../lib/session'
+import { getPackOnce } from '../lib/decks'
 
 export default function Home() {
   const { user, profile, setUsername, signInWithGoogle, signOut, signInError } = useAuth()
@@ -18,7 +20,24 @@ export default function Home() {
   const [usernameError, setUsernameError] = useState(null)
   const [savingUsername, setSavingUsername] = useState(false)
   const [linking, setLinking] = useState(false)
+  const [activeSession, setActiveSession] = useState(null)
+  const [activePack, setActivePack] = useState(null)
   const usernameStatus = useUsernameAvailability(nameDraft, profile?.username, user?.uid)
+
+  useEffect(() => {
+    if (!user) return
+    return subscribeMySessions(user.uid, (sessions) => {
+      setActiveSession(sessions.find((s) => s.active !== false) || null)
+    })
+  }, [user])
+
+  useEffect(() => {
+    if (!activeSession?.packId) {
+      setActivePack(null)
+      return
+    }
+    getPackOnce(activeSession.packId).then(setActivePack)
+  }, [activeSession?.packId])
 
   async function handleSaveUsername() {
     setUsernameError(null)
@@ -78,6 +97,20 @@ export default function Home() {
           {editingProfile ? 'Close' : 'Edit'}
         </button>
       </section>
+
+      {activeSession && (
+        <section className="card hero-card">
+          <h2>
+            <CardIcon icon={Dices} tone="pine" /> You&rsquo;re in a game
+          </h2>
+          <p className="hint">
+            {activePack?.emoji} {activePack?.name || 'Game'} · Code: <strong>{activeSession.code}</strong>
+          </p>
+          <button className="primary" onClick={() => navigate(`/session/${activeSession.code}`)}>
+            Rejoin game
+          </button>
+        </section>
+      )}
 
       {editingProfile && (
         <section className="card">
