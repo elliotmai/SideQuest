@@ -82,16 +82,25 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.hostUid;
       allow update: if request.auth != null;
+      // Deleting a game from history removes it for the whole table, so it's
+      // restricted to whoever hosted it — see lib/session.js#deleteSession,
+      // which also has to clear out the players/events subcollections below
+      // (Firestore never cascades a delete into them on its own).
+      allow delete: if request.auth != null && request.auth.uid == resource.data.hostUid;
 
       match /players/{uid} {
         allow read: if request.auth != null;
         allow write: if request.auth != null && request.auth.uid == uid;
+        allow delete: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/sessions/$(code)).data.hostUid;
       }
 
       match /events/{eventId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/sessions/$(code)).data.hostUid;
       }
     }
   }
