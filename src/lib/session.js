@@ -15,7 +15,7 @@ import {
   orderBy,
   runTransaction,
   writeBatch,
-} from 'firebase/firestore'
+} from './store'
 import { db } from '../firebase'
 import { drawCards, playSharedCard } from './cardGame'
 

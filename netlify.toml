@@ -6,3 +6,8 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[build.environment]
+  # Public by design, in the page: the old Firebase web key (used once, to
+  # claim an old account) and Supabase's publishable key.
+  SECRETS_SCAN_SMART_DETECTION_OMIT_VALUES = "AIzaSyBVrM2DTOeMKT_GeXsM3CtOS0-PXy86Tz4,sb_publishable_fZo1FUg_j4O1EHH-W2Jr1A_4P8W3o2S"

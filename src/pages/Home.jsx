@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import RoadScene from '../components/RoadScene'
 import UsernameStatus from '../components/UsernameStatus'
 import Avatar from '../components/Avatar'
+import ClaimBanner from '../components/ClaimBanner'
 import CardIcon from '../components/CardIcon'
 import { useUsernameAvailability } from '../lib/useUsernameAvailability'
 import { subscribeMySessions } from '../lib/session'
@@ -68,6 +69,7 @@ export default function Home() {
       <h1 className="brand">Side Quest</h1>
       <p className="tagline">Turn any outing into a game.</p>
 
+      <ClaimBanner />
       <section className="card profile-strip">
         <Avatar uid={user?.uid} name={profile?.username} />
         <div className="profile-strip-info">
