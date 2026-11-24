@@ -1,9 +1,11 @@
 /* ── Your games from before ────────────────────────────────────────────────
    SideQuest's packs, profiles and game history were copied over from Firebase
-   (sidequest-42196) as they were, still under each person's old id. Signing
-   in to the old account once (Google, as before) lets Hive confirm it's yours;
-   then sidequest.claim swaps your old id for your new one everywhere, so your
-   username, friends and history are yours again.                          */
+   (sidequest-42196) still under each person's old id. Old ids are linked by
+   email on the server and claimed automatically when the account exists, so
+   this is only for someone whose old Google account used a different email:
+   signing in to it once lets Hive confirm it's theirs, then sidequest.claim
+   swaps the old id for the new one everywhere. Offered from the profile
+   editor on Home (components/BringOldGames).                              */
 import { HIVE_ORIGIN, sidequest, supabase } from '../supabase'
 
 const OLD = {
@@ -13,14 +15,6 @@ const OLD = {
   storageBucket: 'sidequest-42196.firebasestorage.app',
   messagingSenderId: '50057783467',
   appId: '1:50057783467:web:bc4f36faa003184f622fee',
-}
-
-const DONE_KEY = 'sq_claimed_old'
-export const claimSettled = () => {
-  try { return localStorage.getItem(DONE_KEY) === '1' } catch { return false }
-}
-export const settleClaim = () => {
-  try { localStorage.setItem(DONE_KEY, '1') } catch { /* private mode */ }
 }
 
 /** Google sign-in to the old project, Hive confirms, then claim. Returns records moved. */
@@ -36,10 +30,9 @@ export async function claimOldAccount() {
       body: JSON.stringify({ app: 'sidequest', idToken: await user.getIdToken() }),
     })
     const said = await r.json().catch(() => ({}))
-    if (!r.ok) throw new Error(said.error || `Hive answered ${r.status}`)
+    if (!r.ok) throw new Error(said.error || 'We couldn’t check that account. Try again.')
     const { data, error } = await sidequest.rpc('claim')
     if (error) throw new Error(error.message)
-    settleClaim()
     return data || 0
   } finally {
     await fa.signOut(auth).catch(() => {})
