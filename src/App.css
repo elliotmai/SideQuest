@@ -64,7 +64,9 @@
 .page {
   max-width: 640px;
   margin: 0 auto;
-  padding: 1.25rem 1.25rem calc(var(--safe-bottom) + 5.5rem);
+  /* The footer that follows clears the floating tab bar; this used to clear
+     it too, so a page ended in ~190px of empty space. */
+  padding: 1.25rem 1.25rem 1.25rem;
   display: flex;
   flex-direction: column;
   gap: var(--sp-5);
@@ -314,7 +316,8 @@
 
 .app-footer {
   text-align: center;
-  padding: 0 1.25rem calc(var(--safe-bottom) + 6.5rem);
+  /* Clears the floating tab bar (~50px, 0.9rem off the bottom) with a little air. */
+  padding: 0 1.25rem calc(var(--safe-bottom) + 4.75rem);
 }
 
 .app-footer a {
