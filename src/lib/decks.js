@@ -1,4 +1,4 @@
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from './store'
 import { db, getDocFreshFirst } from '../firebase'
 import { DEFAULT_PACKS } from '../data/defaultPacks'
 import { DEFAULT_EXPANSIONS } from '../data/defaultExpansions'

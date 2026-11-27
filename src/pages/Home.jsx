@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import RoadScene from '../components/RoadScene'
 import UsernameStatus from '../components/UsernameStatus'
 import Avatar from '../components/Avatar'
+import BringOldGames from '../components/BringOldGames'
 import CardIcon from '../components/CardIcon'
 import { useUsernameAvailability } from '../lib/useUsernameAvailability'
 import { subscribeMySessions } from '../lib/session'
@@ -136,6 +137,8 @@ export default function Home() {
               {usernameError}
             </p>
           )}
+
+          <BringOldGames />
 
           <button className="ghost" onClick={signOut}>
             Sign out

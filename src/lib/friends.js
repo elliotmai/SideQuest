@@ -11,7 +11,7 @@ import {
   where,
   onSnapshot,
   writeBatch,
-} from 'firebase/firestore'
+} from './store'
 import { db } from '../firebase'
 import { usernameKey } from './usernames'
 

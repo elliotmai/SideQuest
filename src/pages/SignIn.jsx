@@ -33,6 +33,7 @@ export default function SignIn() {
         <h2>Sign in to play</h2>
         <p className="hint">
           Everyone needs an account — it&rsquo;s how your friends, groups, and game history stay yours.
+          Your Hive account works here: the same one as every app on flyingdoublemranch.com.
         </p>
         <button className="primary" onClick={handleSignIn} disabled={signingIn}>
           <KeyRound size={16} strokeWidth={2.25} style={{ marginRight: '0.35rem', verticalAlign: '-3px' }} />

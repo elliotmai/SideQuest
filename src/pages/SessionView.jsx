@@ -8,7 +8,6 @@ import { sendInvites } from '../lib/invites'
 import { resolvePackIcon } from '../lib/packIcon'
 import { resolveDrink } from '../data/modes'
 import { drinkLabel } from '../data/drinks'
-import { buildDeckInstances, dealHand, playCard } from '../lib/cardGame'
 import RoadScene from '../components/RoadScene'
 import Loading from '../components/Loading'
 import CardIcon from '../components/CardIcon'
@@ -19,7 +18,8 @@ import {
   logEvent,
   armMultiplier,
   joinSession,
-  dealPlayerDeck,
+  dealPlayerHand,
+  playSessionCard,
   endSession,
   resumeSession,
   updateSessionNotes,
@@ -66,7 +66,7 @@ export default function SessionView() {
   const [expansions, setExpansions] = useState([])
   const [players, setPlayers] = useState([])
   const [activity, setActivity] = useState([])
-  const [myDeck, setMyDeck] = useState(null) // { hand, stock, discard } — locally owned, optimistic
+  const [myHand, setMyHand] = useState(null) // this player's hand only — stock/discard are shared on `session`
   const [playingIndex, setPlayingIndex] = useState(null)
   const [incomingIndex, setIncomingIndex] = useState(null)
   const [expandedUid, setExpandedUid] = useState(null)
@@ -95,16 +95,12 @@ export default function SessionView() {
     }
   }, [code])
 
-  const [decksLoaded, setDecksLoaded] = useState(false)
   useEffect(() => {
     if (!session) return
-    setDecksLoaded(false)
-    Promise.all([
-      getPackOnce(session.packId).then(setPack),
-      Promise.all((session.expansionIds || []).map(getExpansionOnce)).then((list) =>
-        setExpansions(list.filter(Boolean)),
-      ),
-    ]).then(() => setDecksLoaded(true))
+    getPackOnce(session.packId).then(setPack)
+    Promise.all((session.expansionIds || []).map(getExpansionOnce)).then((list) =>
+      setExpansions(list.filter(Boolean)),
+    )
   }, [session])
 
   const notesLoadedRef = useRef(false)
@@ -127,21 +123,21 @@ export default function SessionView() {
   )
   const me = players.find((p) => p.uid === user?.uid)
 
-  // Deal a hand once: either resume what's already saved, or deal a fresh one
-  // the first time this player has events to build a deck from.
+  // Deal a hand once: either resume what's already saved, or draw a fresh
+  // one off the session's shared stock pile the moment this player has
+  // joined. Doesn't wait on `events` — the shared deck was already built
+  // once, by the host, at session creation (see CreateSession.jsx), so
+  // dealing doesn't depend on this client's own pack/expansion fetch.
   useEffect(() => {
-    if (dealtRef.current || !me || !decksLoaded || events.length === 0) return
+    if (dealtRef.current || !me) return
     if (me.hand) {
-      setMyDeck({ hand: me.hand, stock: me.stock || [], discard: me.discard || [] })
+      setMyHand(me.hand)
       dealtRef.current = true
       return
     }
-    const instances = buildDeckInstances(events)
-    const { hand, stock } = dealHand(instances, 5)
     dealtRef.current = true
-    setMyDeck({ hand, stock, discard: [] })
-    dealPlayerDeck(code, user.uid, { hand, stock, discard: [] })
-  }, [me, events, decksLoaded, code, user])
+    dealPlayerHand(code, user.uid, 5).then(setMyHand)
+  }, [me, code, user])
 
   if (session === undefined)
     return (
@@ -160,6 +156,8 @@ export default function SessionView() {
   const shareUrl = `${window.location.origin}/join/${code}`
   const pendingMultiplier = me?.pendingMultiplier || 1
   const datesPlayed = session.datesPlayed || []
+  const sharedStock = session.stock || []
+  const sharedDiscard = session.discard || []
   const invitableFriends = friends.filter((f) => !players.some((p) => p.uid === f.uid))
 
   function toggleInviteUid(uid) {
@@ -179,6 +177,9 @@ export default function SessionView() {
       const names = friends.filter((f) => selectedInviteUids.includes(f.uid)).map((f) => f.username)
       setInviteStatus(`Invited ${names.join(', ')}.`)
       setSelectedInviteUids([])
+    } catch (err) {
+      console.error('Failed to send invite(s)', err)
+      setInviteStatus("Couldn't send that invite — check your connection and try again.")
     } finally {
       setSendingInvites(false)
     }
@@ -202,24 +203,30 @@ export default function SessionView() {
   }
 
   async function playHandCard(index) {
-    if (!myDeck || playingIndex !== null || session.active === false) return
-    const card = myDeck.hand[index]
+    if (!myHand || playingIndex !== null || session.active === false) return
+    const card = myHand[index]
     const event = events.find((e) => e.id === card.eventId)
 
-    const { hand, stock, discard } = playCard(myDeck.hand, myDeck.stock, myDeck.discard, index)
-    const deck = { hand, stock, discard }
-
     setPlayingIndex(index)
-    setTimeout(() => {
-      setMyDeck(deck)
+    let drawnCard
+    try {
+      // Drawing the replacement has to be a round trip — it comes off the
+      // pile the whole table shares, so this client can't just compute it
+      // locally without risking two players drawing the same next card.
+      const result = await playSessionCard(code, user.uid, index)
+      drawnCard = result.drawnCard
+      setMyHand(result.hand)
+    } finally {
       setPlayingIndex(null)
+    }
+    if (drawnCard) {
       setIncomingIndex(index)
       setTimeout(() => setIncomingIndex(null), ANIM_MS)
-    }, ANIM_MS)
+    }
 
     if (!event) {
-      // Pack changed since this card was dealt — just discard/redraw silently.
-      await dealPlayerDeck(code, user.uid, deck)
+      // Pack changed since this card was dealt — it's already been
+      // discarded/redrawn above; just skip scoring it.
       return
     }
 
@@ -230,7 +237,6 @@ export default function SessionView() {
         eventId: event.id,
         eventLabel: event.label,
         factor: event.factor,
-        deck,
       })
     } else {
       const { drink, points } = resolveDrink(event.drink, session.modifierIds, pendingMultiplier, event.points)
@@ -241,7 +247,6 @@ export default function SessionView() {
         eventLabel: event.label,
         drink,
         points,
-        deck,
       })
     }
   }
@@ -328,46 +333,46 @@ export default function SessionView() {
 
       <section className="card cards-focal">
         <h2><CardIcon icon={Layers} tone="coral" /> Your cards</h2>
-        {!myDeck ? (
+        {!myHand ? (
           <Loading label="Dealing your hand..." />
         ) : (
           <>
             <div className="pile-row">
               <div className="pile">
                 <div className="pile-card-back" />
-                <span className="pile-count">{myDeck.stock.length}</span>
+                <span className="pile-count">{sharedStock.length}</span>
               </div>
               <p className="hint" style={{ margin: 0 }}>
                 {session.active === false
                   ? 'This game has ended — resume it to keep playing.'
-                  : 'Tap a card when it happens — it discards and you draw a fresh one.'}
+                  : 'Tap a card when it happens — it discards and you draw a fresh one from the shared pile.'}
               </p>
               <button
                 type="button"
                 className="pile"
                 style={{ background: 'none', boxShadow: 'none', padding: 0 }}
                 onClick={() => setShowDiscard((v) => !v)}
-                disabled={myDeck.discard.length === 0}
+                disabled={sharedDiscard.length === 0}
               >
                 <div className="pile-card-back discard" />
-                <span className="pile-count">{myDeck.discard.length}</span>
+                <span className="pile-count">{sharedDiscard.length}</span>
               </button>
             </div>
 
             <HandRow
-              hand={myDeck.hand}
+              hand={myHand}
               events={events}
               onPlay={playHandCard}
               disabled={playingIndex !== null || session.active === false}
               animClassFor={(i) => (playingIndex === i ? 'playing' : incomingIndex === i ? 'incoming' : '')}
             />
 
-            {showDiscard && myDeck.discard.length > 0 && (
+            {showDiscard && sharedDiscard.length > 0 && (
               <>
                 <h3 className="field-label" style={{ marginTop: '0.8rem' }}>
-                  Completed cards
+                  Discard pile (shared)
                 </h3>
-                <HandRow hand={myDeck.discard.slice().reverse()} events={events} mini />
+                <HandRow hand={sharedDiscard.slice().reverse()} events={events} mini />
               </>
             )}
           </>

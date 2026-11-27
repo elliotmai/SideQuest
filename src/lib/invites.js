@@ -1,4 +1,4 @@
-import { collection, doc, deleteDoc, query, where, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore'
+import { collection, doc, deleteDoc, query, where, onSnapshot, serverTimestamp, writeBatch } from './store'
 import { db } from '../firebase'
 
 // Sends one invite doc per invited friend so each side can see/dismiss their

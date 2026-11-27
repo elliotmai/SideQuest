@@ -1,4 +1,4 @@
-import { doc, setDoc, deleteDoc } from 'firebase/firestore'
+import { doc, setDoc, deleteDoc } from './store'
 import { db, getDocFreshFirst } from '../firebase'
 
 export function usernameKey(username) {
